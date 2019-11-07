@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.qiniu.jemy.upload.activity.MainActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="180dp"
+        android:orientation="vertical"
+        >
+       <EditText
+          android:id="@+id/keyname"
+           android:layout_width="match_parent"
+           android:hint="keyname"
+           android:layout_height="50dp" />
+        <EditText
+            android:id="@+id/uptoken"
+            android:layout_width="match_parent"
+            android:hint="token"
+            android:layout_height="50dp" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:orientation="horizontal">
+            <Button
+                android:id="@+id/openFile"
+                android:layout_width="150dp"
+                android:layout_height="60dp"
+                android:layout_gravity="center_vertical"
+                android:textSize="25sp"
+                android:text="打开文件"/>
+
+            <Button
+                android:id="@+id/start"
+                android:layout_width="150dp"
+                android:layout_height="60dp"
+                android:layout_gravity="center_vertical"
+                android:text="开始上传"
+                android:textSize="25sp" />
+        </LinearLayout>
+        </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_marginTop="200dp"
+        android:layout_height="match_parent"
+        >
+        <TextView
+            android:id="@+id/log"
+            android:scrollbars="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:textColor="	#000080"
+            android:singleLine="false"
+            android:textSize="13sp"
+            />
+
+    </LinearLayout>
+
+
+</FrameLayout>
