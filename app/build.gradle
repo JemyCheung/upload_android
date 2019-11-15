@@ -25,15 +25,15 @@ android {
 }
 //7.3.10 webp       7.3.12 png
 dependencies {
-    compile 'com.qiniu:happy-dns:0.2.13'
+    //compile 'com.qiniu:happy-dns:0.2.13'
+    implementation files('libs/happy-dns-0.2.15.jar')
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:appcompat-v7:26.1.0'
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
-    compile 'com.qiniu:qiniu-android-sdk:7.4.2'
-
+    //implementation files('libs/qiniu-android-sdk-7.5.0.jar')
     compile 'com.squareup.okhttp3:okhttp:3.11.0'
-    implementation files('libs/qiniu-android-sdk-7.4.3.jar')
+    implementation project(':library')
 }

@@ -25,9 +25,15 @@ import com.qiniu.android.dns.DnsManager;
 import com.qiniu.android.dns.Domain;
 import com.qiniu.android.dns.IResolver;
 import com.qiniu.android.dns.NetworkInfo;
+import com.qiniu.android.dns.local.AndroidDnsServer;
 import com.qiniu.android.dns.local.Resolver;
 import com.qiniu.android.http.Dns;
 import com.qiniu.android.http.ProxyConfiguration;
+import com.qiniu.android.http.custom.DnsCacheKey;
+import com.qiniu.android.storage.Recorder;
+import com.qiniu.android.storage.persistent.DnsCacheFile;
+import com.qiniu.android.utils.AndroidNetwork;
+import com.qiniu.android.utils.StringUtils;
 import com.qiniu.jemy.upload.utils.Config;
 import com.qiniu.jemy.upload.utils.FileUtils;
 import com.qiniu.jemy.upload.utils.Tools;
@@ -99,7 +105,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 //get token from you server
                 token = Config.UPTOKEN_Z0;
                 //token = tokenEdit.getText().toString();
-                upload(token);
+//                new Thread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        while (true) {
+                            upload(token);
+//                            try {
+//                                Thread.sleep(3*60*1000);
+//                            } catch (InterruptedException e) {
+//                                e.printStackTrace();
+//                            }
+//                        }
+//                    }
+//                }).start();
+
                 break;
         }
     }
@@ -156,12 +175,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         keyname = keyNameEdit.getText().toString();
         File uploadFile = new File(this.uploadFilePath);
+        uploadFile.length();
+
+
+
         uploadFileLength = uploadFile.length();
         long time = new Date().getTime();
         if (keyname.equals(""))
             keyname = "test_" + time;
-        writeLog(this.getString(com.qiniu.jemy.upload.R.string.qiniu_upload_file) + "...");
 
+
+        //test up method
+        if(!output()){
+            writeLog("获取ip发生错误\n");
+        }
+
+        writeLog(this.getString(com.qiniu.jemy.upload.R.string.qiniu_upload_file) + "...");
         this.uploadManager.put(uploadFile, keyname, uploadToken,
                 new UpCompletionHandler() {
                     @Override
@@ -174,11 +203,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 writeLog("--------------------------------UPTime/ms: " + (endTime - startTime));
                                 String fileKey = jsonData.getString("key");
                                 String fileHash = jsonData.getString("hash");
-                                writeLog("File Size: " + Tools.formatSize(uploadFileLength));
-                                writeLog("File Key: " + fileKey);
+//                                writeLog("File Size: " + Tools.formatSize(uploadFileLength));
+//                                writeLog("File Key: " + fileKey);
                                 writeLog("File Hash: " + fileHash);
                                 writeLog("X-Reqid: " + respInfo.reqId);
-                                writeLog("X-Via: " + respInfo.xvia);
+                                writeLog("X-Reqid: " + respInfo.host);
+                               // writeLog("X-Via: " + respInfo.xvia);
                                 writeLog("--------------------------------" + "\n上传成功");
                             } catch (JSONException e) {
                                 writeLog(MainActivity.this
@@ -198,6 +228,35 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
 
                 }, opt);
+    }
+
+    private boolean output() {
+        String ip = AndroidNetwork.getHostIP();
+        Recorder recorder = null;
+        try {
+            recorder = new DnsCacheFile(com.qiniu.android.collect.Config.dnscacheDir);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+        String dnscache = recorder.getFileName();
+        if (dnscache == null)
+            return false;
+
+        byte[] data = recorder.get(dnscache);
+        if (data == null)
+            return false;
+
+        DnsCacheKey cacheKey = DnsCacheKey.toCacheKey(dnscache);
+        if (cacheKey == null)
+            return false;
+
+        String cacheIp = cacheKey.getLocalIp();
+        if(cacheIp == null)
+            return false;
+        writeLog("本机ip:" +ip +",缓存ip:"+cacheIp+"\n");
+        return true;
+
     }
 
     public void applypermission() {
@@ -298,24 +357,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         // 适当调整不同 IResolver 的加入顺序
         ArrayList<IResolver> rs = new ArrayList<IResolver>(3);
         try {
-            IResolver r1 = new Resolver(InetAddress.getByName("119.29.29.29"));
+            IResolver r1 = new Resolver(InetAddress.getByName("119.29.29.29"));//指定119.29.29.29
             rs.add(r1);
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-//        try {
-//            rs.add(new Resolver(InetAddress.getByName("114.114.114.114")));
-//        } catch (Exception ex) {
-//            ex.printStackTrace();
-//        }
-//        try {
-//            // 读取系统相关属性
-//            // android 27 及以上 会报错
-//            IResolver r2 = AndroidDnsServer.defaultResolver();
-//            rs.add(r2);
-//        } catch (Exception ex) {
-//            ex.printStackTrace();
-//        }
+        try {
+            rs.add(new Resolver(InetAddress.getByName("8.8.8.8")));//指定8.8.8.8
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        try {
+            // 读取系统相关属性
+            // android 27 及以上 会报错
+            IResolver r2 = AndroidDnsServer.defaultResolver(this);//添加系统默认dns解析
+            rs.add(r2);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
         if (rs.size() == 0) {
             return null;
         }
@@ -341,5 +400,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         };
         return dns;
     }
+
 
 }
