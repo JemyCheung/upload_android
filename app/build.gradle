@@ -35,5 +35,5 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
     //implementation files('libs/qiniu-android-sdk-7.5.0.jar')
     compile 'com.squareup.okhttp3:okhttp:3.11.0'
-    implementation project(':library')
+    implementation project(':android-sdk')
 }

@@ -103,22 +103,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             case com.qiniu.jemy.upload.R.id.start:
                 //get token from you server
-                token = Config.UPTOKEN_Z0;
-                //token = tokenEdit.getText().toString();
-//                new Thread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        while (true) {
-                            upload(token);
-//                            try {
-//                                Thread.sleep(3*60*1000);
-//                            } catch (InterruptedException e) {
-//                                e.printStackTrace();
-//                            }
-//                        }
-//                    }
-//                }).start();
-
+                upload();
                 break;
         }
     }
@@ -136,7 +121,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
-    private void upload(String uploadToken) {
+    private void upload() {
+        token = Config.UPTOKEN_Z0;
+
         final long startTime = System.currentTimeMillis();
         //可以自定义zone
         //Zone zone = new FixedZone(new String[]{"domain1","domain2"});
@@ -178,7 +165,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         uploadFile.length();
 
 
-
         uploadFileLength = uploadFile.length();
         long time = new Date().getTime();
         if (keyname.equals(""))
@@ -186,12 +172,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
         //test up method
-        if(!output()){
-            writeLog("获取ip发生错误\n");
+        if (!output()) {
+            writeLog("获取ip发生错误");
         }
 
         writeLog(this.getString(com.qiniu.jemy.upload.R.string.qiniu_upload_file) + "...");
-        this.uploadManager.put(uploadFile, keyname, uploadToken,
+        this.uploadManager.put(uploadFile, keyname, token,
                 new UpCompletionHandler() {
                     @Override
                     public void complete(String key, ResponseInfo respInfo,
@@ -205,10 +191,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 String fileHash = jsonData.getString("hash");
 //                                writeLog("File Size: " + Tools.formatSize(uploadFileLength));
 //                                writeLog("File Key: " + fileKey);
-                                writeLog("File Hash: " + fileHash);
+                                writeLog("File Hash: " + fileHash+", key: "+fileKey);
                                 writeLog("X-Reqid: " + respInfo.reqId);
                                 writeLog("X-Reqid: " + respInfo.host);
-                               // writeLog("X-Via: " + respInfo.xvia);
+                                // writeLog("X-Via: " + respInfo.xvia);
                                 writeLog("--------------------------------" + "\n上传成功");
                             } catch (JSONException e) {
                                 writeLog(MainActivity.this
@@ -252,9 +238,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return false;
 
         String cacheIp = cacheKey.getLocalIp();
-        if(cacheIp == null)
+        if (cacheIp == null)
             return false;
-        writeLog("本机ip:" +ip +",缓存ip:"+cacheIp+"\n");
+        writeLog("开始上传-------本机ip:" + ip + ",上次缓存ip:" + cacheIp);
         return true;
 
     }
