@@ -29,7 +29,9 @@ import com.qiniu.android.dns.local.AndroidDnsServer;
 import com.qiniu.android.dns.local.Resolver;
 import com.qiniu.android.http.Dns;
 import com.qiniu.android.http.custom.DnsCacheKey;
+import com.qiniu.android.storage.FormUploader;
 import com.qiniu.android.storage.Recorder;
+import com.qiniu.android.storage.ResumeUploaderFast;
 import com.qiniu.android.storage.persistent.DnsCacheFile;
 import com.qiniu.android.utils.AndroidNetwork;
 import com.qiniu.jemy.upload.R;
@@ -58,7 +60,7 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    private Button mStartBtn,mClearLog,mOpenFile;
+    private Button mStartBtn, mClearLog, mOpenFile;
 
     private static final int REQUEST_CODE = 8090;
     private TextView mLog;
@@ -72,7 +74,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private String uploadFilePath;
     private RadioGroup radioGroup;
     private RadioButton radioButton1, radioButton2, radioButton3;
-    private File uploadFile ;
+    private File uploadFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -132,7 +134,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void setRegion(int checkedId) {
-        switch (checkedId){
+        switch (checkedId) {
             case R.id.region_z0:
                 token = Config.UPTOKEN_Z0;
                 break;
@@ -148,7 +150,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void upload() {
 
-        if(!checkValue()){
+        if (!checkValue()) {
             return;
         }
 
@@ -209,23 +211,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 writeLog("File Hash: " + fileHash + ", key: " + fileKey);
                                 writeLog("X-Reqid: " + respInfo.reqId);
                                 writeLog("host: " + respInfo.host);
+                                writeLog("host: " + "Resume:" + ResumeUploaderFast.getReHost() + ",Form:" + FormUploader.getRehost());
                                 // writeLog("X-Via: " + respInfo.xvia);
-                                writeLog("--------------------------------上传成功" + "\n\n");
+                                writeLog("--------------------------------上传成功");
                             } catch (JSONException e) {
                                 writeLog(MainActivity.this
                                         .getString(com.qiniu.jemy.upload.R.string.qiniu_upload_file_response_parse_error));
                                 if (jsonData != null) {
                                     writeLog(jsonData.toString());
                                 }
-                                writeLog("--------------------------------上传失败" + "\n\n");
+                                writeLog("--------------------------------上传失败");
                             }
                         } else {
                             writeLog(respInfo.toString());
                             if (jsonData != null) {
                                 writeLog(jsonData.toString());
                             }
-                            writeLog("--------------------------------上传失败" + "\n\n");
+                            writeLog("--------------------------------上传失败");
                         }
+
+                        writeLog("retry host: \n" + "分片:" + ResumeUploaderFast.getReHost() + "\n表单:" + FormUploader.getRehost() + "\n\n");
+                        ResumeUploaderFast.setRehost();
+                        FormUploader.setRehost();
                     }
 
                 }, opt);
@@ -236,25 +243,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         String filename = keyNameEdit.getText().toString().trim();
         String filesize = fileSizeEdit.getText().toString().trim();
 
-        if(!"".equals(uptoken)&&uptoken!=null){
+        if (!"".equals(uptoken) && uptoken != null) {
             token = uptoken;
-        }else if(token == null){
-            Toast.makeText(this,"请输入token或者勾选上传区域",Toast.LENGTH_LONG).show();
+        } else if (token == null) {
+            Toast.makeText(this, "请输入token或者勾选上传区域", Toast.LENGTH_LONG).show();
             return false;
         }
 
-        keyname = "android_test_"+filename+new Date().getTime();
+        keyname = "android_test_" + filename + new Date().getTime();
 
-        if(!"".equals(filesize)&&filesize!=null){
+        if (!"".equals(filesize) && filesize != null) {
             try {
-                uploadFile =TempFile.createFile((int) Long.parseLong(filesize)*1024);
+                uploadFile = TempFile.createFile((int) Long.parseLong(filesize) * 1024);
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }else if(uploadFilePath==null){
-            Toast.makeText(this,"请选择文件或者输入文件大小自动生成",Toast.LENGTH_LONG).show();
+        } else if (uploadFilePath == null) {
+            Toast.makeText(this, "请选择文件或者输入文件大小自动生成", Toast.LENGTH_LONG).show();
             return false;
-        }else{
+        } else {
             uploadFile = new File(uploadFilePath);
         }
         uploadFileLength = uploadFile.length();
@@ -285,7 +292,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         String cacheIp = cacheKey.getLocalIp();
         if (cacheIp == null)
             return false;
-        writeLog("开始上传-------本机ip:" + ip + ",上次缓存ip:" + cacheIp);
+        writeLog("开始上传-------\n本机ip:" + ip + ",上次缓存ip:" + cacheIp);
         return true;
 
     }

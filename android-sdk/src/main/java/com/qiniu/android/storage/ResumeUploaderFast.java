@@ -182,7 +182,7 @@ public class ResumeUploaderFast implements Runnable {
         putBlockInfo();
 
         upHost.set(config.zone.upHost(token.token, config.useHttps, null));
-        rehost.append(upHost.get());
+        rehost.append(upHost.get()+", ");
         if (blockInfo.size() < multithread) {
             multithread = blockInfo.size();
         }
@@ -475,7 +475,7 @@ public class ResumeUploaderFast implements Runnable {
             singleDomainRetry.getAndSet(1);
             retried.getAndAdd(1);
             upHost.getAndSet(config.zone.upHost(token.token, config.useHttps, upHost.get().toString()));
-            rehost.append(upHost.get());
+            rehost.append(upHost.get()+", ");
         }
 
     }
