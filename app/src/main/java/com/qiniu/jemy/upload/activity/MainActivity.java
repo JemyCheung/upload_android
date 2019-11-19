@@ -176,6 +176,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 .connectTimeout(10)
                 //.zone(zone)
                 //.dns(buildDefaultDns())//指定dns服务器
+                .useHttps(true)
                 .responseTimeout(60).build();
 
         if (this.uploadManager == null) {
