@@ -1,0 +1,59 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:1:1-14:12
+INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:1:1-14:12
+INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:1:1-14:12
+INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:1:1-14:12
+INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:1:1-14:12
+INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:1:1-14:12
+INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:1:1-14:12
+	package
+		ADDED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:2:5-32
+		INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml
+		INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml
+	android:versionName
+		INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml
+		ADDED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:1:1-14:12
+		INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml
+	android:versionCode
+		INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml
+		ADDED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:1:1-14:12
+		INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:1:11-69
+uses-permission#android.permission.INTERNET
+ADDED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:4:5-67
+	android:name
+		ADDED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:4:22-64
+uses-permission#android.permission.WRITE_EXTERNAL_STORAGE
+ADDED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:5:5-81
+	android:name
+		ADDED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:5:22-78
+uses-permission#android.permission.ACCESS_NETWORK_STATE
+ADDED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:6:5-79
+	android:name
+		ADDED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:6:22-76
+application
+ADDED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:8:5-12:19
+	android:label
+		ADDED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:8:18-50
+uses-library#android.test.runner
+ADDED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:9:9-11:40
+	android:required
+		ADDED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:11:13-37
+	android:name
+		ADDED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml:10:13-47
+uses-sdk
+INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml
+INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml
+INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml
+INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml
+		ADDED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml
+		INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml
+		ADDED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml
+		INJECTED from /Users/jemy/Desktop/Jemy_work/as_workspace01/upload_android/android-sdk/src/main/AndroidManifest.xml
