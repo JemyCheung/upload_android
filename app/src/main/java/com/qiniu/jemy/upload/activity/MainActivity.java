@@ -211,7 +211,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 writeLog("File Hash: " + fileHash + ", key: " + fileKey);
                                 writeLog("X-Reqid: " + respInfo.reqId);
                                 writeLog("host: " + respInfo.host);
-                                writeLog("host: " + "Resume:" + ResumeUploaderFast.getReHost() + ",Form:" + FormUploader.getRehost());
                                 // writeLog("X-Via: " + respInfo.xvia);
                                 writeLog("--------------------------------上传成功");
                             } catch (JSONException e) {
