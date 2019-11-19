@@ -123,7 +123,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         //Zone zone = new FixedZone(new String[]{"domain1","domain2"});
 
         //手动指定上传区域
-        Zone zone = FixedZone.zone0;//华东
+        //Zone zone = FixedZone.zone0;//华东
 
         //配置断点续传
         /**
@@ -138,7 +138,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         //config配置上传参数
         Configuration configuration = new Configuration.Builder()
                 .connectTimeout(10)
-                .zone(zone)
+                //.zone(zone)
                 //.dns(buildDefaultDns())//指定dns服务器
                 .responseTimeout(60).build();
 
