@@ -16,11 +16,11 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.qiniu.android.common.FixedZone;
-import com.qiniu.android.common.Zone;
 import com.qiniu.android.dns.DnsManager;
 import com.qiniu.android.dns.Domain;
 import com.qiniu.android.dns.IResolver;
@@ -28,16 +28,14 @@ import com.qiniu.android.dns.NetworkInfo;
 import com.qiniu.android.dns.local.AndroidDnsServer;
 import com.qiniu.android.dns.local.Resolver;
 import com.qiniu.android.http.Dns;
-import com.qiniu.android.http.ProxyConfiguration;
 import com.qiniu.android.http.custom.DnsCacheKey;
 import com.qiniu.android.storage.Recorder;
 import com.qiniu.android.storage.persistent.DnsCacheFile;
 import com.qiniu.android.utils.AndroidNetwork;
-import com.qiniu.android.utils.StringUtils;
+import com.qiniu.jemy.upload.R;
 import com.qiniu.jemy.upload.utils.Config;
 import com.qiniu.jemy.upload.utils.FileUtils;
-import com.qiniu.jemy.upload.utils.Tools;
-
+import com.qiniu.jemy.upload.utils.TempFile;
 import com.qiniu.android.http.ResponseInfo;
 import com.qiniu.android.storage.Configuration;
 import com.qiniu.android.storage.UpCompletionHandler;
@@ -52,24 +50,19 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.Proxy;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import okhttp3.OkHttpClient;
-
-
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    private Button mStartBtn;
-    private Button mOpenFile;
+    private Button mStartBtn,mClearLog,mOpenFile;
 
     private static final int REQUEST_CODE = 8090;
     private TextView mLog;
-    private EditText keyNameEdit, tokenEdit;
+    private EditText keyNameEdit, tokenEdit, fileSizeEdit;
     String[] allpermissions = new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE};
 
     private String token;
@@ -77,6 +70,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private String keyname;
     private long uploadFileLength;
     private String uploadFilePath;
+    private RadioGroup radioGroup;
+    private RadioButton radioButton1, radioButton2, radioButton3;
+    private File uploadFile ;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,8 +81,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         applypermission();
         initView();
     }
-
-    private OkHttpClient okHttpClient;
 
     @Override
     public void onClick(View v) {
@@ -102,8 +96,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
 
             case com.qiniu.jemy.upload.R.id.start:
-                //get token from you server
                 upload();
+                break;
+            case R.id.clear_log:
+                clearLog();
                 break;
         }
     }
@@ -112,24 +108,56 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void initView() {
         mOpenFile = findViewById(com.qiniu.jemy.upload.R.id.openFile);
         mStartBtn = findViewById(com.qiniu.jemy.upload.R.id.start);
+        mClearLog = findViewById(R.id.clear_log);
         keyNameEdit = findViewById(com.qiniu.jemy.upload.R.id.keyname);
         tokenEdit = findViewById(com.qiniu.jemy.upload.R.id.uptoken);
+        fileSizeEdit = findViewById(R.id.filesize);
+        radioGroup = findViewById(R.id.region);
+        radioButton1 = findViewById(R.id.region_z0);
+        radioButton2 = findViewById(R.id.region_z1);
+        radioButton3 = findViewById(R.id.region_z2);
         mLog = findViewById(com.qiniu.jemy.upload.R.id.log);
+
         mLog.setMovementMethod(ScrollingMovementMethod.getInstance());
         mOpenFile.setOnClickListener(this);
         mStartBtn.setOnClickListener(this);
+        mClearLog.setOnClickListener(this);
+
+        radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                setRegion(checkedId);
+            }
+        });
+    }
+
+    private void setRegion(int checkedId) {
+        switch (checkedId){
+            case R.id.region_z0:
+                token = Config.UPTOKEN_Z0;
+                break;
+            case R.id.region_z1:
+                token = Config.UPTOKEN_Z1;
+                break;
+            case R.id.region_z2:
+                token = Config.UPTOKEN_Z2;
+                break;
+        }
     }
 
 
     private void upload() {
-        token = Config.UPTOKEN_Z0;
+
+        if(!checkValue()){
+            return;
+        }
 
         final long startTime = System.currentTimeMillis();
         //可以自定义zone
         //Zone zone = new FixedZone(new String[]{"domain1","domain2"});
 
         //手动指定上传区域
-        Zone zone = FixedZone.zone0;//华东
+        //Zone zone = FixedZone.zone0;//华东
 
         //配置断点续传
         /**
@@ -144,7 +172,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         //config配置上传参数
         Configuration configuration = new Configuration.Builder()
                 .connectTimeout(10)
-                .zone(zone)
+                //.zone(zone)
                 //.dns(buildDefaultDns())//指定dns服务器
                 .responseTimeout(60).build();
 
@@ -160,23 +188,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }, null);
 
-        keyname = keyNameEdit.getText().toString();
-        File uploadFile = new File(this.uploadFilePath);
-        uploadFile.length();
-
-
-        uploadFileLength = uploadFile.length();
-        long time = new Date().getTime();
-        if (keyname.equals(""))
-            keyname = "test_" + time;
-
-
-        //test up method
+        //获取本地dns缓存记录
         if (!output()) {
             writeLog("获取ip发生错误");
         }
-
-        writeLog(this.getString(com.qiniu.jemy.upload.R.string.qiniu_upload_file) + "...");
         this.uploadManager.put(uploadFile, keyname, token,
                 new UpCompletionHandler() {
                     @Override
@@ -191,29 +206,59 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 String fileHash = jsonData.getString("hash");
 //                                writeLog("File Size: " + Tools.formatSize(uploadFileLength));
 //                                writeLog("File Key: " + fileKey);
-                                writeLog("File Hash: " + fileHash+", key: "+fileKey);
+                                writeLog("File Hash: " + fileHash + ", key: " + fileKey);
                                 writeLog("X-Reqid: " + respInfo.reqId);
-                                writeLog("X-Reqid: " + respInfo.host);
+                                writeLog("host: " + respInfo.host);
                                 // writeLog("X-Via: " + respInfo.xvia);
-                                writeLog("--------------------------------" + "\n上传成功");
+                                writeLog("--------------------------------上传成功" + "\n\n");
                             } catch (JSONException e) {
                                 writeLog(MainActivity.this
                                         .getString(com.qiniu.jemy.upload.R.string.qiniu_upload_file_response_parse_error));
                                 if (jsonData != null) {
                                     writeLog(jsonData.toString());
                                 }
-                                writeLog("--------------------------------" + "\n上传失败");
+                                writeLog("--------------------------------上传失败" + "\n\n");
                             }
                         } else {
                             writeLog(respInfo.toString());
                             if (jsonData != null) {
                                 writeLog(jsonData.toString());
                             }
-                            writeLog("--------------------------------" + "\n上传失败");
+                            writeLog("--------------------------------上传失败" + "\n\n");
                         }
                     }
 
                 }, opt);
+    }
+
+    private boolean checkValue() {
+        String uptoken = tokenEdit.getText().toString().trim();
+        String filename = keyNameEdit.getText().toString().trim();
+        String filesize = fileSizeEdit.getText().toString().trim();
+
+        if(!"".equals(uptoken)&&uptoken!=null){
+            token = uptoken;
+        }else if(token == null){
+            Toast.makeText(this,"请输入token或者勾选上传区域",Toast.LENGTH_LONG).show();
+            return false;
+        }
+
+        keyname = "android_test_"+filename+new Date().getTime();
+
+        if(!"".equals(filesize)&&filesize!=null){
+            try {
+                uploadFile =TempFile.createFile((int) Long.parseLong(filesize)*1024);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }else if(uploadFilePath==null){
+            Toast.makeText(this,"请选择文件或者输入文件大小自动生成",Toast.LENGTH_LONG).show();
+            return false;
+        }else{
+            uploadFile = new File(uploadFilePath);
+        }
+        uploadFileLength = uploadFile.length();
+        return true;
     }
 
     private boolean output() {
@@ -287,7 +332,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             // Get the file path from the URI
                             final String path = FileUtils.getPath(this, uri);
                             this.uploadFilePath = path;
-                            this.clearLog();
                             this.writeLog(this
                                     .getString(com.qiniu.jemy.upload.R.string.qiniu_select_upload_file)
                                     + path);

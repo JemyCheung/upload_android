@@ -8,26 +8,57 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="180dp"
+        android:layout_height="230dp"
         android:orientation="vertical"
         >
        <EditText
           android:id="@+id/keyname"
            android:layout_width="match_parent"
-           android:hint="keyname"
-           android:layout_height="50dp" />
+           android:hint="选填：keyname"
+           android:layout_height="40dp" />
         <EditText
             android:id="@+id/uptoken"
             android:layout_width="match_parent"
-            android:hint="token"
-            android:layout_height="50dp" />
+            android:hint="选填：token,不填请在下面勾选"
+            android:layout_height="40dp" />
+        <EditText
+            android:id="@+id/filesize"
+            android:layout_width="match_parent"
+            android:hint="选填：输入文件大小自动生成文件/MB"
+            android:layout_height="40dp" />
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="40dp">
+            <RadioGroup
+                android:id="@+id/region"
+                android:orientation="horizontal"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp">
+            <RadioButton
+                android:id="@+id/region_z0"
+                android:layout_width="70dp"
+                android:layout_height="wrap_content"
+                android:text="华东"></RadioButton>
+            <RadioButton
+                android:id="@+id/region_z1"
+                android:layout_width="70dp"
+                android:layout_height="wrap_content"
+                android:text="华北"></RadioButton>
+            <RadioButton
+                android:id="@+id/region_z2"
+                android:layout_width="70dp"
+                android:layout_height="wrap_content"
+                android:text="华南"></RadioButton>
+            </RadioGroup>
+        </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="80dp"
+            android:layout_height="60dp"
             android:orientation="horizontal">
             <Button
                 android:id="@+id/openFile"
-                android:layout_width="150dp"
+                android:layout_width="130dp"
                 android:layout_height="60dp"
                 android:layout_gravity="center_vertical"
                 android:textSize="25sp"
@@ -35,23 +66,30 @@
 
             <Button
                 android:id="@+id/start"
-                android:layout_width="150dp"
+                android:layout_width="130dp"
                 android:layout_height="60dp"
                 android:layout_gravity="center_vertical"
                 android:text="开始上传"
+                android:textSize="25sp" />
+            <Button
+                android:id="@+id/clear_log"
+                android:layout_width="130dp"
+                android:layout_height="60dp"
+                android:layout_gravity="center_vertical"
+                android:text="清除日志"
                 android:textSize="25sp" />
         </LinearLayout>
         </LinearLayout>
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_marginTop="200dp"
+        android:layout_marginTop="230dp"
         android:layout_height="match_parent"
         >
         <TextView
             android:id="@+id/log"
             android:scrollbars="vertical"
             android:layout_width="match_parent"
-            android:layout_height="300dp"
+            android:layout_height="380dp"
             android:textColor="	#000080"
             android:singleLine="false"
             android:textSize="13sp"

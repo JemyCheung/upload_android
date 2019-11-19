@@ -120,6 +120,15 @@ public class ResumeUploaderFast implements Runnable {
      */
     private boolean isInterrupted = false;
 
+    private static StringBuffer rehost =new StringBuffer();
+
+    public static StringBuffer getReHost(){
+        return rehost;
+    }
+
+    public static void setRehost(){
+        rehost = new StringBuffer();
+    }
     ResumeUploaderFast(Client client, Configuration config, File f, String key, UpToken token,
                        final UpCompletionHandler completionHandler, UploadOptions options, String recorderKey, int multithread) {
         this.client = client;
@@ -173,6 +182,7 @@ public class ResumeUploaderFast implements Runnable {
         putBlockInfo();
 
         upHost.set(config.zone.upHost(token.token, config.useHttps, null));
+        rehost.append(upHost.get());
         if (blockInfo.size() < multithread) {
             multithread = blockInfo.size();
         }
@@ -465,6 +475,7 @@ public class ResumeUploaderFast implements Runnable {
             singleDomainRetry.getAndSet(1);
             retried.getAndAdd(1);
             upHost.getAndSet(config.zone.upHost(token.token, config.useHttps, upHost.get().toString()));
+            rehost.append(upHost.get());
         }
 
     }
