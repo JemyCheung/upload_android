@@ -34,6 +34,7 @@ import com.qiniu.android.storage.Recorder;
 import com.qiniu.android.storage.ResumeUploaderFast;
 import com.qiniu.android.storage.persistent.DnsCacheFile;
 import com.qiniu.android.utils.AndroidNetwork;
+import com.qiniu.android.utils.LogHandler;
 import com.qiniu.jemy.upload.R;
 import com.qiniu.jemy.upload.utils.Config;
 import com.qiniu.jemy.upload.utils.FileUtils;
@@ -177,6 +178,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 //.zone(zone)
                 //.dns(buildDefaultDns())//指定dns服务器
                 .useHttps(true)
+                .connectTimeout(50)
+                .responseTimeout(50)
                 .responseTimeout(60).build();
 
         if (this.uploadManager == null) {
@@ -195,6 +198,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (!output()) {
             writeLog("获取ip发生错误");
         }
+
+        LogHandler logMsg = new LogHandler() {
+            @Override
+            public void send(String msg) {
+                writeLog(msg);
+            }
+        };
+
         this.uploadManager.put(uploadFile, keyname, token,
                 new UpCompletionHandler() {
                     @Override
@@ -204,38 +215,34 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         if (respInfo.isOK()) {
                             try {
                                 Log.e("zw", jsonData.toString() + respInfo.toString());
-                                writeLog("--------------------------------UPTime/ms: " + (endTime - startTime));
+                                writeLog("UPTime/ms: " + (endTime - startTime));
                                 String fileKey = jsonData.getString("key");
                                 String fileHash = jsonData.getString("hash");
 //                                writeLog("File Size: " + Tools.formatSize(uploadFileLength));
 //                                writeLog("File Key: " + fileKey);
-                                writeLog("File Hash: " + fileHash + ", key: " + fileKey);
+                                writeLog("File Hash: " + fileHash + "\nkey: " + fileKey);
                                 writeLog("X-Reqid: " + respInfo.reqId);
                                 writeLog("host: " + respInfo.host);
                                 // writeLog("X-Via: " + respInfo.xvia);
-                                writeLog("--------------------------------上传成功");
+                                writeLog("--------------------------------上传成功\n\n");
                             } catch (JSONException e) {
                                 writeLog(MainActivity.this
                                         .getString(com.qiniu.jemy.upload.R.string.qiniu_upload_file_response_parse_error));
                                 if (jsonData != null) {
                                     writeLog(jsonData.toString());
                                 }
-                                writeLog("--------------------------------上传失败");
+                                writeLog("--------------------------------上传失败\n\n");
                             }
                         } else {
                             writeLog(respInfo.toString());
                             if (jsonData != null) {
                                 writeLog(jsonData.toString());
                             }
-                            writeLog("--------------------------------上传失败");
+                            writeLog("--------------------------------上传失败\n\n");
                         }
-
-                        writeLog("retry host: \n" + "分片:" + ResumeUploaderFast.getReHost() + "\n表单:" + FormUploader.getRehost() + "\n\n");
-                        ResumeUploaderFast.setRehost();
-                        FormUploader.setRehost();
                     }
 
-                }, opt);
+                }, opt,logMsg);
     }
 
     private boolean checkValue() {
@@ -292,7 +299,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         String cacheIp = cacheKey.getLocalIp();
         if (cacheIp == null)
             return false;
-        writeLog("开始上传-------\n本机ip:" + ip + ",上次缓存ip:" + cacheIp);
+        writeLog("--------------------------------开始上传\n本机ip:" + ip + ",上次缓存ip:" + cacheIp);
         return true;
 
     }

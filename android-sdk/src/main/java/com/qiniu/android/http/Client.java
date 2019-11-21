@@ -155,7 +155,7 @@ public final class Client {
 
         HttpUrl u = response.request().url();
         return ResponseInfo.create(json, code, reqId, response.header("X-Log"),
-                via(response), u.host()+",protocols:"+protocols, u.encodedPath(), ip, u.port(), duration,
+                via(response), u.host()+", protocols:"+protocols, u.encodedPath(), ip, u.port(), duration,
                 getContentLength(response), error, upToken, totalSize);
     }
 

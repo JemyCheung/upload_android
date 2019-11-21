@@ -6,6 +6,7 @@ import com.qiniu.android.http.ProgressHandler;
 import com.qiniu.android.http.ResponseInfo;
 import com.qiniu.android.utils.AndroidNetwork;
 import com.qiniu.android.utils.Crc32;
+import com.qiniu.android.utils.LogHandler;
 import com.qiniu.android.utils.StringMap;
 import com.qiniu.android.utils.StringUtils;
 import com.qiniu.android.utils.UrlSafeBase64;
@@ -120,17 +121,12 @@ public class ResumeUploaderFast implements Runnable {
      */
     private boolean isInterrupted = false;
 
-    private static StringBuffer rehost =new StringBuffer();
-
-    public static StringBuffer getReHost(){
-        return rehost;
-    }
-
-    public static void setRehost(){
-        rehost = new StringBuffer();
-    }
+    private LogHandler logHandler ;
+    private String RSHOST = "next rsHost: ";
+    private String BLOCK = "block: ";
+    private String RETRY = "retry: ";
     ResumeUploaderFast(Client client, Configuration config, File f, String key, UpToken token,
-                       final UpCompletionHandler completionHandler, UploadOptions options, String recorderKey, int multithread) {
+                       final UpCompletionHandler completionHandler, UploadOptions options, String recorderKey, int multithread, final LogHandler logHandler) {
         this.client = client;
         this.config = config;
         this.f = f;
@@ -161,6 +157,7 @@ public class ResumeUploaderFast implements Runnable {
                 }
             }
         };
+        this.logHandler = logHandler;
         this.options = options != null ? options : UploadOptions.defaultOptions();
         tblock = new AtomicInteger((int) (totalSize + Configuration.BLOCK_SIZE - 1) / Configuration.BLOCK_SIZE);
         this.offsets = new Long[tblock.get()];
@@ -182,7 +179,6 @@ public class ResumeUploaderFast implements Runnable {
         putBlockInfo();
 
         upHost.set(config.zone.upHost(token.token, config.useHttps, null));
-        rehost.append(upHost.get()+", ");
         if (blockInfo.size() < multithread) {
             multithread = blockInfo.size();
         }
@@ -240,6 +236,7 @@ public class ResumeUploaderFast implements Runnable {
             blockSize = entry.getValue();
             blockInfo.remove(offset);
         }
+        logHandler.send(BLOCK+"offset:"+offset+",blockSize:"+blockSize);
         return new BlockElement(offset, blockSize);
     }
 
@@ -395,6 +392,7 @@ public class ResumeUploaderFast implements Runnable {
                 if (!isChunkOK(info, response)) {
                     if (info.statusCode == 701 && checkRetried()) {
                         updateRetried();
+                        logHandler.send(RETRY+"statusCode:"+info.statusCode+", offset:"+offset+", blockSize:"+blockSize+", reHost:"+upHost.get().toString());
                         mkblk(offset, blockSize, upHost.get().toString());
                         return;
                     }
@@ -402,6 +400,7 @@ public class ResumeUploaderFast implements Runnable {
                             && ((isNotChunkToQiniu(info, response) || info.needRetry())
                             && checkRetried())) {
                         updateRetried();
+                        logHandler.send(RETRY+"statusCode:"+info.statusCode+", offset:"+offset+", blockSize:"+blockSize+", reHost:"+upHost.get().toString());
                         mkblk(offset, blockSize, upHost.get().toString());
                         return;
                     }
@@ -414,6 +413,7 @@ public class ResumeUploaderFast implements Runnable {
                 String context = null;
                 if (response == null && checkRetried()) {
                     updateRetried();
+                    logHandler.send(RETRY+"error:response == null, offset:"+offset+", blockSize:"+blockSize+", reHost:"+upHost.get().toString());
                     mkblk(offset, blockSize, upHost.get().toString());
                     return;
                 }
@@ -428,6 +428,7 @@ public class ResumeUploaderFast implements Runnable {
                 }
                 if ((context == null || crc != crc32) && checkRetried()) {
                     updateRetried();
+                    logHandler.send(RETRY+"error context:"+context+",crc32-crc="+(crc32-crc)+", offset:"+offset+", blockSize:"+blockSize+", reHost:"+upHost.get().toString());
                     mkblk(offset, blockSize, upHost.get().toString());
                     return;
                 }
@@ -475,7 +476,7 @@ public class ResumeUploaderFast implements Runnable {
             singleDomainRetry.getAndSet(1);
             retried.getAndAdd(1);
             upHost.getAndSet(config.zone.upHost(token.token, config.useHttps, upHost.get().toString()));
-            rehost.append(upHost.get()+", ");
+            logHandler.send(RSHOST+upHost.get());
         }
 
     }

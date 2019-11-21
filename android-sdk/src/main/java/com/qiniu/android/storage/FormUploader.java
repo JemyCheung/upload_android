@@ -9,6 +9,7 @@ import com.qiniu.android.http.ProgressHandler;
 import com.qiniu.android.http.ResponseInfo;
 import com.qiniu.android.utils.AndroidNetwork;
 import com.qiniu.android.utils.Crc32;
+import com.qiniu.android.utils.LogHandler;
 import com.qiniu.android.utils.StringMap;
 
 import org.json.JSONObject;
@@ -25,14 +26,8 @@ import java.io.IOException;
  */
 public class FormUploader {
 
-    public static StringBuilder rehost = new StringBuilder();
-
-    public static StringBuilder getRehost(){
-        return rehost;
-    }
-    public static void setRehost(){
-        rehost = new StringBuilder();
-    }
+    private static String HOST = "upHost: ";
+    private static String RETRY = "retry: ";
 
 
     /**
@@ -47,7 +42,7 @@ public class FormUploader {
      */
     static void upload(Client httpManager, Configuration config, byte[] data, String key, UpToken token, final UpCompletionHandler completionHandler,
                        final UploadOptions options) {
-        post(data, null, key, token, completionHandler, options, httpManager, config);
+        post(data, null, key, token, completionHandler, options, httpManager, config,null);
     }
 
     /**
@@ -61,13 +56,13 @@ public class FormUploader {
      * @param options           上传时的可选参数
      */
     static void upload(Client client, Configuration config, File file, String key, UpToken token,
-                       UpCompletionHandler completionHandler, UploadOptions options) {
-        post(null, file, key, token, completionHandler, options, client, config);
+                       UpCompletionHandler completionHandler, UploadOptions options, LogHandler logHandler) {
+        post(null, file, key, token, completionHandler, options, client, config,logHandler);
     }
 
     private static void post(byte[] data, File file, String k, final UpToken token,
                              final UpCompletionHandler completionHandler,
-                             final UploadOptions optionsIn, final Client client, final Configuration config) {
+                             final UploadOptions optionsIn, final Client client, final Configuration config, final LogHandler logHandler) {
         final String key = k;
         StringMap params = new StringMap();
         final PostArgs args = new PostArgs();
@@ -117,7 +112,7 @@ public class FormUploader {
         args.params = params;
 
         final String upHost = config.zone.upHost(token.token, config.useHttps, null);
-        rehost.append(upHost+", ");
+        logHandler.send(HOST+upHost);
         Log.d("Qiniu.FormUploader", "upload use up host " + upHost);
         CompletionHandler completion = new CompletionHandler() {
             @Override
@@ -135,7 +130,7 @@ public class FormUploader {
                     completionHandler.complete(key, info, response);
                 } else if (info.needRetry()) {
                     final String upHostRetry = config.zone.upHost(token.token, config.useHttps, upHost);
-                    rehost.append(upHostRetry+", ");
+                    logHandler.send(RETRY+upHostRetry+"statusCode:"+info.statusCode);
                     Log.d("Qiniu.FormUploader", "retry upload first time use up host " + upHostRetry);
                     CompletionHandler retried = new CompletionHandler() {
                         @Override
@@ -145,7 +140,7 @@ public class FormUploader {
                                 completionHandler.complete(key, info, response);
                             } else if (info.needRetry()) {
                                 final String upHostRetry2 = config.zone.upHost(token.token, config.useHttps, upHostRetry);
-                                rehost.append(upHostRetry2+", ");
+                                logHandler.send(RETRY+upHostRetry2+"statusCode:"+info.statusCode);
                                 Log.d("Qiniu.FormUploader", "retry upload second time use up host " + upHostRetry2);
                                 CompletionHandler retried2 = new CompletionHandler() {
                                     @Override
@@ -258,7 +253,6 @@ public class FormUploader {
 
 
         final String upHost = config.zone.upHost(token.token, config.useHttps, null);
-        rehost.append(upHost+", ");
         Log.d("Qiniu.FormUploader", "sync upload use up host " + upHost);
         ResponseInfo info = client.syncMultipartPost(upHost, args, token);
 
@@ -277,7 +271,6 @@ public class FormUploader {
 
             //retry for the second time
             String upHostRetry = config.zone.upHost(token.token, config.useHttps, upHost);
-            rehost.append(upHostRetry+", ");
             Log.d("Qiniu.FormUploader", "sync upload retry first time use up host " + upHostRetry);
             info = client.syncMultipartPost(upHostRetry, args, token);
 
@@ -290,7 +283,6 @@ public class FormUploader {
                 }
 
                 String upHostRetry2 = config.zone.upHost(token.token, config.useHttps, upHostRetry);
-                rehost.append(upHostRetry2+", ");
                 Log.d("Qiniu.FormUploader", "sync upload retry second time use up host " + upHostRetry2);
                 info = client.syncMultipartPost(upHostRetry2, args, token);
                 if (info.needRetry()) {

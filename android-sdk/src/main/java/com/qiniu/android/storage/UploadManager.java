@@ -7,6 +7,7 @@ import com.qiniu.android.http.Client;
 import com.qiniu.android.http.DnsPrefetcher;
 import com.qiniu.android.http.ResponseInfo;
 import com.qiniu.android.utils.AsyncRun;
+import com.qiniu.android.utils.LogHandler;
 import com.qiniu.android.utils.StringUtils;
 
 import org.json.JSONObject;
@@ -181,7 +182,7 @@ public final class UploadManager {
      */
     public void put(String filePath, String key, String token, UpCompletionHandler completionHandler,
                     final UploadOptions options) {
-        put(new File(filePath), key, token, completionHandler, options);
+        put(new File(filePath), key, token, completionHandler, options,null);
     }
 
 
@@ -195,7 +196,7 @@ public final class UploadManager {
      * @param options  上传数据的可选参数
      */
     public void put(final File file, final String key, final String token, final UpCompletionHandler complete,
-                    final UploadOptions options) {
+                    final UploadOptions options, final LogHandler logHandler) {
         final UpToken decodedToken = UpToken.parse(token);
         if (areInvalidArg(key, null, file, token, decodedToken, complete)) {
             return;
@@ -217,7 +218,7 @@ public final class UploadManager {
             public void onSuccess() {
                 long size = file.length();
                 if (size <= config.putThreshold) {
-                    FormUploader.upload(client, config, file, key, decodedToken, complete, options);
+                    FormUploader.upload(client, config, file, key, decodedToken, complete, options,logHandler);
                     return;
                 }
                 String recorderKey = config.keyGen.gen(key, file);
@@ -228,7 +229,7 @@ public final class UploadManager {
                     AsyncRun.runInMain(uploader);
                 } else {
                     ResumeUploaderFast uploader = new ResumeUploaderFast(client, config, file, key,
-                            decodedToken, completionHandler, options, recorderKey, multithreads);
+                            decodedToken, completionHandler, options, recorderKey, multithreads,logHandler);
                     AsyncRun.runInMain(uploader);
                 }
             }
