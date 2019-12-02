@@ -6,6 +6,7 @@ import com.qiniu.android.http.ProgressHandler;
 import com.qiniu.android.http.ResponseInfo;
 import com.qiniu.android.utils.AndroidNetwork;
 import com.qiniu.android.utils.Crc32;
+import com.qiniu.android.utils.LogHandler;
 import com.qiniu.android.utils.StringMap;
 import com.qiniu.android.utils.StringUtils;
 import com.qiniu.android.utils.UrlSafeBase64;
@@ -210,15 +211,18 @@ final class ResumeUploader implements Runnable {
             completionHandler.complete(key, i, null);
             return;
         }
+        final LogHandler logHandler = this.config.logHandler;
 
         if (offset == totalSize) {
             //完成操作,返回的内容不确定,是否真正成功逻辑让用户自己判断
+
             CompletionHandler complete = new CompletionHandler() {
                 @Override
                 public void complete(ResponseInfo info, JSONObject response) {
                     if (info.isNetworkBroken() && !AndroidNetwork.isNetWorkReady()) {
                         options.netReadyHandler.waitReady();
                         if (!AndroidNetwork.isNetWorkReady()) {
+                            logHandler.send("网络故障，上传无法继续进行");
                             completionHandler.complete(key, info, response);
                             return;
                         }
@@ -234,6 +238,7 @@ final class ResumeUploader implements Runnable {
                     // mkfile  ，允许多重试一次
                     if (info.needRetry() && retried < config.retryMax + 1) {
                         String upHostRetry = config.zone.upHost(token.token, config.useHttps, upHost);
+                        logHandler.send("上传失败，重试 " + retried + " / " + config.retryMax + ", 域名: " + upHostRetry);
                         if (upHostRetry != null) {
                             nextTask(offset, retried + 1, upHostRetry);
                             return;
@@ -265,12 +270,14 @@ final class ResumeUploader implements Runnable {
                 if (info.isNetworkBroken() && !AndroidNetwork.isNetWorkReady()) {
                     options.netReadyHandler.waitReady();
                     if (!AndroidNetwork.isNetWorkReady()) {
+                        logHandler.send("网络故障，上传无法继续进行");
                         completionHandler.complete(key, info, response);
                         return;
                     }
                 }
 
                 if (info.isCancelled()) {
+                    logHandler.send("上传已经被取消");
                     completionHandler.complete(key, info, response);
                     return;
                 }
@@ -279,6 +286,7 @@ final class ResumeUploader implements Runnable {
                 if (!isChunkOK(info, response)) {
                     String upHostRetry = config.zone.upHost(token.token, config.useHttps, upHost);
                     if (info.statusCode == 701 && retried < config.retryMax) {
+                        logHandler.send("上传失败，重试 " + retried + " / " + config.retryMax);
                         nextTask((offset / Configuration.BLOCK_SIZE) * Configuration.BLOCK_SIZE, retried + 1, upHost);
                         return;
                     }
@@ -286,6 +294,7 @@ final class ResumeUploader implements Runnable {
                     if (upHostRetry != null
                             && ((isNotChunkToQiniu(info, response) || info.needRetry())
                             && retried < config.retryMax)) {
+                        logHandler.send("上传失败，重试 " + retried + " / " + config.retryMax);
                         nextTask(offset, retried + 1, upHostRetry);
                         return;
                     }
@@ -297,6 +306,7 @@ final class ResumeUploader implements Runnable {
 
                 if (response == null && retried < config.retryMax) {
                     String upHostRetry = config.zone.upHost(token.token, config.useHttps, upHost);
+                    logHandler.send("上传失败，重试 " + retried + " / " + config.retryMax + ", 域名: " + upHostRetry);
                     nextTask(offset, retried + 1, upHostRetry);
                     return;
                 }
@@ -311,6 +321,7 @@ final class ResumeUploader implements Runnable {
                 }
                 if ((context == null || crc != ResumeUploader.this.crc32) && retried < config.retryMax) {
                     String upHostRetry = config.zone.upHost(token.token, config.useHttps, upHost);
+                    logHandler.send("上传失败，CRC32 验证不匹配，重试 " + retried + " / " + config.retryMax + ", 域名: " + upHostRetry);
                     nextTask(offset, retried + 1, upHostRetry);
                     return;
                 }
@@ -321,12 +332,14 @@ final class ResumeUploader implements Runnable {
                         error += tempE.getMessage();
                     }
                     ResponseInfo info2 = ResponseInfo.errorInfo(info, ResponseInfo.UnknownError, error);
+                    logHandler.send("上传失败，context 找不到，原因未知");
                     completionHandler.complete(key, info2, response);
                     return;
                 }
                 if (crc != ResumeUploader.this.crc32) {
                     String error = "block's crc32 is not match. local: " + ResumeUploader.this.crc32 + ", remote: " + crc;
                     ResponseInfo info2 = ResponseInfo.errorInfo(info, ResponseInfo.Crc32NotMatch, error);
+                    logHandler.send("上传失败，CRC32 验证不匹配");
                     completionHandler.complete(key, info2, response);
                     return;
                 }

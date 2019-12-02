@@ -4,6 +4,7 @@ import android.os.Looper;
 import android.util.Log;
 
 import com.qiniu.android.utils.AndroidNetwork;
+import com.qiniu.android.utils.LogHandler;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -44,12 +45,12 @@ public final class UploadOptions {
     final NetReadyHandler netReadyHandler;
 
     public UploadOptions(Map<String, String> params, String mimeType, boolean checkCrc,
-                         UpProgressHandler progressHandler, UpCancellationSignal cancellationSignal) {
-        this(params, mimeType, checkCrc, progressHandler, cancellationSignal, null);
+                         UpProgressHandler progressHandler, UpCancellationSignal cancellationSignal, LogHandler logHandler) {
+        this(params, mimeType, checkCrc, progressHandler, cancellationSignal, null, logHandler);
     }
 
     public UploadOptions(Map<String, String> params, String mimeType, boolean checkCrc,
-                         UpProgressHandler progressHandler, UpCancellationSignal cancellationSignal, NetReadyHandler netReadyHandler) {
+                         UpProgressHandler progressHandler, UpCancellationSignal cancellationSignal, NetReadyHandler netReadyHandler, final LogHandler logHandler) {
         this.params = filterParam(params);
         this.mimeType = mime(mimeType);
         this.checkCrc = checkCrc;
@@ -72,13 +73,22 @@ public final class UploadOptions {
                     return;
                 }
                 for (int i = 0; i < 6; i++) {
+                    if (logHandler != null) {
+                        logHandler.send("等待网络恢复");
+                    }
                     try {
                         Thread.sleep(500);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                     if (AndroidNetwork.isNetWorkReady()) {
+                        if (logHandler != null) {
+                            logHandler.send("网络没有恢复");
+                        }
                         return;
+                    }
+                    if (logHandler != null) {
+                        logHandler.send("网络已经恢复");
                     }
                 }
             }
@@ -106,7 +116,7 @@ public final class UploadOptions {
     }
 
     static UploadOptions defaultOptions() {
-        return new UploadOptions(null, null, false, null, null);
+        return new UploadOptions(null, null, false, null, null, null);
     }
 
     private static String mime(String mimeType) {

@@ -122,16 +122,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void initUploadManager() {
-        Configuration configuration = new Configuration.Builder()
-                .useHttps(true)
-                .logHandler(new LogHandler() {
-                    @Override
-                    public void send(String msg) {
-                        writeLog(msg);
-                    }
-                }).build();
-        this.uploadManager = new UploadManager(configuration, 3);
-        writeLog("初始化 UploadManager");
+        if (this.uploadManager == null) {
+            Configuration configuration = new Configuration.Builder()
+                    .useHttps(true)
+                    .logHandler(new LogHandler() {
+                        @Override
+                        public void send(String msg) {
+                            writeLog(msg);
+                        }
+                    }).build();
+            this.uploadManager = new UploadManager(configuration, 3);
+            writeLog("初始化 UploadManager");
+        }
     }
 
     private void setRegion(int checkedId) {
@@ -162,7 +164,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void progress(String key, double percent) {
             Log.i("qiniutest", "percent:" + percent);
             }
-        }, null);
+        }, null, new LogHandler() {
+            @Override
+            public void send(String msg) {
+                writeLog(msg);
+            }
+        });
 
         //获取本地dns缓存记录
         if (!output()) {

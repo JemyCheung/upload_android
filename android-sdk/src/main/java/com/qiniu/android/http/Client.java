@@ -75,6 +75,7 @@ public final class Client {
             @Override
             public okhttp3.Response intercept(Chain chain) throws IOException {
                 Request request = chain.request();
+                logHandler.send("开始访问 " + request.method() + " " + request.url());
                 final long before = System.currentTimeMillis();
                 okhttp3.Response response = chain.proceed(request);
                 final long after = System.currentTimeMillis();
@@ -97,7 +98,6 @@ public final class Client {
         builder.readTimeout(responseTimeout, TimeUnit.SECONDS);
         builder.writeTimeout(0, TimeUnit.SECONDS);
         httpClient = builder.build();
-
     }
 
     private static String via(okhttp3.Response response) {

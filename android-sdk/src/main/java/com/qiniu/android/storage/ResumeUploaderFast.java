@@ -343,6 +343,7 @@ public class ResumeUploaderFast implements Runnable {
                 if (info.isNetworkBroken() && !AndroidNetwork.isNetWorkReady()) {
                     options.netReadyHandler.waitReady();
                     if (!AndroidNetwork.isNetWorkReady()) {
+                        logHandler.send("网络故障，上传无法继续进行");
                         completionHandler.complete(key, info, response);
                         return;
                     }
@@ -357,6 +358,7 @@ public class ResumeUploaderFast implements Runnable {
 
                 // mkfile  ，允许多重试一次，这里不需要重试时，成功与否都complete回调给客户端
                 if (info.needRetry() && retried.get() < config.retryMax + 1) {
+                    logHandler.send("上传失败，重试 " + retried + " / " + config.retryMax + ", 域名: " + upHost.get().toString());
                     makeFile(upHost.get().toString(), getMkfileCompletionHandler(), options.cancellationSignal);
                     retried.addAndGet(1);
                     return;
@@ -375,6 +377,7 @@ public class ResumeUploaderFast implements Runnable {
                 if (info.isNetworkBroken() && !AndroidNetwork.isNetWorkReady()) {
                     options.netReadyHandler.waitReady();
                     if (!AndroidNetwork.isNetWorkReady()) {
+                        logHandler.send("网络故障，上传无法继续进行");
                         completionHandler.complete(key, info, response);
                         return;
                     }
@@ -382,6 +385,7 @@ public class ResumeUploaderFast implements Runnable {
 
                 //取消
                 if (info.isCancelled()) {
+                    logHandler.send("上传已经被取消");
                     completionHandler.complete(key, info, response);
                     return;
                 }
@@ -392,7 +396,7 @@ public class ResumeUploaderFast implements Runnable {
                 if (!isChunkOK(info, response)) {
                     if (info.statusCode == 701 && checkRetried()) {
                         updateRetried();
-                        logHandler.send(RETRY+"statusCode:"+info.statusCode+", offset:"+offset+", blockSize:"+blockSize+", reHost:"+upHost.get().toString());
+                        logHandler.send(RETRY+"statusCode:"+info.statusCode+", offset:"+offset+", blockSize:"+blockSize+", reHost:"+upHost.get().toString() + ", retry: " + retried.get() + " / " + domainRetry);
                         mkblk(offset, blockSize, upHost.get().toString());
                         return;
                     }
@@ -400,7 +404,7 @@ public class ResumeUploaderFast implements Runnable {
                             && ((isNotChunkToQiniu(info, response) || info.needRetry())
                             && checkRetried())) {
                         updateRetried();
-                        logHandler.send(RETRY+"statusCode:"+info.statusCode+", offset:"+offset+", blockSize:"+blockSize+", reHost:"+upHost.get().toString());
+                        logHandler.send(RETRY+"statusCode:"+info.statusCode+", offset:"+offset+", blockSize:"+blockSize+", reHost:"+upHost.get().toString() + ", retry: " + retried.get() + " / " + domainRetry);
                         mkblk(offset, blockSize, upHost.get().toString());
                         return;
                     }
@@ -413,7 +417,7 @@ public class ResumeUploaderFast implements Runnable {
                 String context = null;
                 if (response == null && checkRetried()) {
                     updateRetried();
-                    logHandler.send(RETRY+"error:response == null, offset:"+offset+", blockSize:"+blockSize+", reHost:"+upHost.get().toString());
+                    logHandler.send(RETRY+"error:response == null, offset:"+offset+", blockSize:"+blockSize+", reHost:"+upHost.get().toString() + ", retry: " + retried.get() + " / " + domainRetry);
                     mkblk(offset, blockSize, upHost.get().toString());
                     return;
                 }
@@ -428,7 +432,7 @@ public class ResumeUploaderFast implements Runnable {
                 }
                 if ((context == null || crc != crc32) && checkRetried()) {
                     updateRetried();
-                    logHandler.send(RETRY+"error context:"+context+",crc32-crc="+(crc32-crc)+", offset:"+offset+", blockSize:"+blockSize+", reHost:"+upHost.get().toString());
+                    logHandler.send(RETRY+"error context:"+context+",crc32-crc="+(crc32-crc)+", offset:"+offset+", blockSize:"+blockSize+", reHost:"+upHost.get().toString() + ", retry: " + retried.get() + " / " + domainRetry);
                     mkblk(offset, blockSize, upHost.get().toString());
                     return;
                 }
