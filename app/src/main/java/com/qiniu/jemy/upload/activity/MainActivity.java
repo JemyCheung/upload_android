@@ -21,17 +21,8 @@ import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.qiniu.android.dns.DnsManager;
-import com.qiniu.android.dns.Domain;
-import com.qiniu.android.dns.IResolver;
-import com.qiniu.android.dns.NetworkInfo;
-import com.qiniu.android.dns.local.AndroidDnsServer;
-import com.qiniu.android.dns.local.Resolver;
-import com.qiniu.android.http.Dns;
 import com.qiniu.android.http.custom.DnsCacheKey;
-import com.qiniu.android.storage.FormUploader;
 import com.qiniu.android.storage.Recorder;
-import com.qiniu.android.storage.ResumeUploaderFast;
 import com.qiniu.android.storage.persistent.DnsCacheFile;
 import com.qiniu.android.utils.AndroidNetwork;
 import com.qiniu.android.utils.LogHandler;
@@ -52,12 +43,7 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -83,6 +69,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(com.qiniu.jemy.upload.R.layout.activity_main);
         applypermission();
         initView();
+        initUploadManager();
     }
 
     @Override
@@ -134,6 +121,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
     }
 
+    private void initUploadManager() {
+        Configuration configuration = new Configuration.Builder()
+                .useHttps(true)
+                .logHandler(new LogHandler() {
+                    @Override
+                    public void send(String msg) {
+                        writeLog(msg);
+                    }
+                }).build();
+        this.uploadManager = new UploadManager(configuration, 3);
+        writeLog("初始化 UploadManager");
+    }
+
     private void setRegion(int checkedId) {
         switch (checkedId) {
             case R.id.region_z0:
@@ -156,55 +156,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         final long startTime = System.currentTimeMillis();
-        //可以自定义zone
-        //Zone zone = new FixedZone(new String[]{"domain1","domain2"});
-
-        //手动指定上传区域
-        //Zone zone = FixedZone.zone0;//华东
-
-        //配置断点续传
-        /**
-         FileRecorder fileRecorder = null;
-         try {
-         fileRecorder = new FileRecorder("directory");
-         } catch (IOException e) {
-         e.printStackTrace();
-         }
-         */
-
-        //config配置上传参数
-        Configuration configuration = new Configuration.Builder()
-                .connectTimeout(10)
-                //.zone(zone)
-                //.dns(buildDefaultDns())//指定dns服务器
-                .useHttps(true)
-                .connectTimeout(50)
-                .responseTimeout(50)
-                .responseTimeout(60).build();
-
-        if (this.uploadManager == null) {
-            //this.uploadManager = new UploadManager(fileRecorder);
-            this.uploadManager = new UploadManager(configuration, 3);
-        }
 
         UploadOptions opt = new UploadOptions(null, null, true, new UpProgressHandler() {
             @Override
             public void progress(String key, double percent) {
-                Log.i("qiniutest", "percent:" + percent);
+            Log.i("qiniutest", "percent:" + percent);
             }
         }, null);
 
         //获取本地dns缓存记录
         if (!output()) {
-            writeLog("获取ip发生错误");
+            writeLog("获取 IP 发生错误");
         }
-
-        LogHandler logMsg = new LogHandler() {
-            @Override
-            public void send(String msg) {
-                writeLog(msg);
-            }
-        };
 
         this.uploadManager.put(uploadFile, keyname, token,
                 new UpCompletionHandler() {
@@ -242,7 +205,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         }
                     }
 
-                }, opt,logMsg);
+                }, opt);
     }
 
     private boolean checkValue() {
@@ -301,7 +264,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return false;
         writeLog("--------------------------------开始上传\n本机ip:" + ip + ",上次缓存ip:" + cacheIp);
         return true;
-
     }
 
     public void applypermission() {
@@ -366,7 +328,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         this.mLog.setText("");
     }
 
-    private void writeLog(final String msg) {
+    public void writeLog(final String msg) {
         AsyncRun.runInMain(new Runnable() {
             @Override
             public void run() {
@@ -391,59 +353,4 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onPause() {
         super.onPause();
     }
-
-    /**
-     * 需要自定义DNS解析时配置
-     *
-     * @return
-     */
-    public Dns buildDefaultDns() {
-        // 适当调整不同 IResolver 的加入顺序
-        ArrayList<IResolver> rs = new ArrayList<IResolver>(3);
-        try {
-            IResolver r1 = new Resolver(InetAddress.getByName("119.29.29.29"));//指定119.29.29.29
-            rs.add(r1);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-        try {
-            rs.add(new Resolver(InetAddress.getByName("8.8.8.8")));//指定8.8.8.8
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-        try {
-            // 读取系统相关属性
-            // android 27 及以上 会报错
-            IResolver r2 = AndroidDnsServer.defaultResolver(this);//添加系统默认dns解析
-            rs.add(r2);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-        if (rs.size() == 0) {
-            return null;
-        }
-        final DnsManager happlyDns = new DnsManager(NetworkInfo.normal, rs.toArray(new IResolver[rs.size()]));
-        Dns dns = new Dns() {
-            // 若抛出异常 Exception ，则使用 okhttp 组件默认 dns 解析结果
-            @Override
-            public List<InetAddress> lookup(String hostname) throws UnknownHostException {
-                InetAddress[] ips;
-                try {
-                    ips = happlyDns.queryInetAdress(new Domain(hostname));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    throw new UnknownHostException(e.getMessage());
-                }
-                if (ips == null || ips.length == 0) {
-                    throw new UnknownHostException(hostname + " resolve failed.");
-                }
-                List<InetAddress> l = new ArrayList<>();
-                Collections.addAll(l, ips);
-                return l;
-            }
-        };
-        return dns;
-    }
-
-
 }

@@ -24,7 +24,7 @@ public final class Pipeline {
 
     public Pipeline(Configuration config) {
         this.config = Configuration.copy(config);
-        this.client = new Client(this.config.proxy, this.config.connectTimeout, this.config.responseTimeout, null, null);
+        this.client = new Client(this.config.proxy, this.config.connectTimeout, this.config.responseTimeout, null, null, null);
     }
 
     public <V> void pump(String repo, Map<String, V> data, String token, PumpCompleteHandler handler) {

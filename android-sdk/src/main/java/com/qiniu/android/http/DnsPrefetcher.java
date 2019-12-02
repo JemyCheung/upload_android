@@ -1,5 +1,7 @@
 package com.qiniu.android.http;
 
+import android.util.Log;
+
 import com.qiniu.android.collect.Config;
 import com.qiniu.android.common.Constants;
 import com.qiniu.android.common.FixedZone;
@@ -9,6 +11,7 @@ import com.qiniu.android.storage.Configuration;
 import com.qiniu.android.storage.Recorder;
 import com.qiniu.android.storage.persistent.DnsCacheFile;
 import com.qiniu.android.utils.AndroidNetwork;
+import com.qiniu.android.utils.LogHandler;
 import com.qiniu.android.utils.StringUtils;
 import com.qiniu.android.utils.UrlSafeBase64;
 
@@ -30,22 +33,23 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 
 public class DnsPrefetcher {
-
     public static DnsPrefetcher dnsPrefetcher = null;
     private static String token;
 
     private static ConcurrentHashMap<String, List<InetAddress>> mConcurrentHashMap = new ConcurrentHashMap<String, List<InetAddress>>();
     private static List<String> mHosts = new ArrayList<String>();
 
-    private DnsPrefetcher() {
+    private final LogHandler logHandler;
 
+    private DnsPrefetcher(final LogHandler logHandler) {
+        this.logHandler = logHandler;
     }
 
-    public static DnsPrefetcher getDnsPrefetcher() {
+    public static DnsPrefetcher getDnsPrefetcher(final LogHandler logHandler) {
         if (dnsPrefetcher == null) {
             synchronized (DnsPrefetcher.class) {
                 if (dnsPrefetcher == null) {
-                    dnsPrefetcher = new DnsPrefetcher();
+                    dnsPrefetcher = new DnsPrefetcher(logHandler);
                 }
             }
         }
@@ -117,9 +121,11 @@ public class DnsPrefetcher {
             try {
                 inetAddresses = okhttp3.Dns.SYSTEM.lookup(host);
                 mConcurrentHashMap.put(host, inetAddresses);
+                this.logHandler.send("预解析域名 " + host + " 成功，缓存其结果");
             } catch (UnknownHostException e) {
                 e.printStackTrace();
                 rePreHosts.add(host);
+                this.logHandler.send("预解析域名 " + host + " 失败，错误内容: " + e.getMessage());
             }
         }
         rePreFetch(rePreHosts, null);
@@ -151,9 +157,11 @@ public class DnsPrefetcher {
                 inetAddresses = customeDns.lookup(host);
             }
             mConcurrentHashMap.put(host, inetAddresses);
+            this.logHandler.send("预解析域名 " + host + " 重试成功，缓存其结果");
             return true;
         } catch (UnknownHostException e) {
             e.printStackTrace();
+            this.logHandler.send("预解析域名 " + host + " 重试失败，错误内容: " + e.getMessage());
             return false;
         }
     }
@@ -172,9 +180,11 @@ public class DnsPrefetcher {
             try {
                 inetAddresses = dns.lookup(host);
                 mConcurrentHashMap.put(host, inetAddresses);
+                this.logHandler.send("从自定义 DNS 预解析域名 " + host + " 成功，缓存其结果");
             } catch (UnknownHostException e) {
                 e.printStackTrace();
                 rePreHosts.add(host);
+                this.logHandler.send("从自定义 DNS 预解析域名 " + host + " 失败，错误内容: " + e.getMessage());
             }
         }
         rePreFetch(rePreHosts, dns);
@@ -213,7 +223,7 @@ public class DnsPrefetcher {
     }
 
     ResponseInfo getZoneJsonSync(DnsPrefetcher.ZoneIndex index) {
-        Client client = new Client();
+        Client client = new Client(this.logHandler);
         String address = "http://" + Config.preQueryHost + "/v2/query?ak=" + index.accessKey + "&bucket=" + index.bucket;
         return client.syncGet(address, null);
     }
@@ -294,7 +304,7 @@ public class DnsPrefetcher {
             return true;
         }
 
-        return recoverDnsCache(data);
+        return recoverDnsCache(data, config);
     }
 
     /**
@@ -313,13 +323,13 @@ public class DnsPrefetcher {
         DnsPrefetcher dnsPrefetcher = null;
         try {
             recorder = new DnsCacheFile(Config.dnscacheDir);
-            dnsPrefetcher = DnsPrefetcher.getDnsPrefetcher().init(token);
+            dnsPrefetcher = DnsPrefetcher.getDnsPrefetcher(config.logHandler).init(token);
         } catch (IOException e) {
             e.printStackTrace();
             return;
         }
         if (config.dns != null) {
-            DnsPrefetcher.getDnsPrefetcher().dnsPreByCustom(config.dns);
+            DnsPrefetcher.getDnsPrefetcher(config.logHandler).dnsPreByCustom(config.dns);
         }
         if (dnsPrefetcher != null) {
             ConcurrentHashMap<String, List<InetAddress>> concurrentHashMap = dnsPrefetcher.getConcurrentHashMap();
@@ -334,12 +344,12 @@ public class DnsPrefetcher {
      * @param data
      * @return
      */
-    public static boolean recoverDnsCache(byte[] data) {
+    public static boolean recoverDnsCache(byte[] data, Configuration config) {
         ConcurrentHashMap<String, List<InetAddress>> concurrentHashMap = (ConcurrentHashMap<String, List<InetAddress>>) StringUtils.toObject(data);
         if (concurrentHashMap == null) {
             return true;
         }
-        DnsPrefetcher.getDnsPrefetcher().setConcurrentHashMap(concurrentHashMap);
+        DnsPrefetcher.getDnsPrefetcher(config.logHandler).setConcurrentHashMap(concurrentHashMap);
 
         ArrayList<String> list = new ArrayList<String>();
         Iterator iter = concurrentHashMap.keySet().iterator();
@@ -349,7 +359,8 @@ public class DnsPrefetcher {
                 continue;
             list.add(tmpkey);
         }
-        DnsPrefetcher.getDnsPrefetcher().setHosts(list);
+        DnsPrefetcher.getDnsPrefetcher(config.logHandler).setHosts(list);
+        config.logHandler.send("从文件中获取 DNS 缓存成功");
         return false;
     }
 }

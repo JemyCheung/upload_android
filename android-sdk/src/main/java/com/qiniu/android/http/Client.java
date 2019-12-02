@@ -4,6 +4,7 @@ import com.qiniu.android.common.Constants;
 import com.qiniu.android.storage.UpCancellationSignal;
 import com.qiniu.android.storage.UpToken;
 import com.qiniu.android.utils.AsyncRun;
+import com.qiniu.android.utils.LogHandler;
 import com.qiniu.android.utils.StringMap;
 import com.qiniu.android.utils.StringUtils;
 
@@ -38,11 +39,15 @@ public final class Client {
     private final UrlConverter converter;
     private OkHttpClient httpClient;
 
-    public Client() {
-        this(null, 10, 30, null, null);
+    public Client(final LogHandler logHandler) {
+        this(null, 10, 30, null, null, logHandler);
     }
 
-    public Client(ProxyConfiguration proxy, int connectTimeout, int responseTimeout, UrlConverter converter, final Dns dns) {
+    public Client(ProxyConfiguration proxy, int connectTimeout, int responseTimeout, UrlConverter converter, final Dns dns, final LogHandler logHandler) {
+        if (logHandler == null) {
+            throw new IllegalArgumentException("logHandle must not be null");
+        }
+
         this.converter = converter;
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
         if (proxy != null) {
@@ -55,10 +60,14 @@ public final class Client {
         builder.dns(new okhttp3.Dns() {
             @Override
             public List<InetAddress> lookup(String hostname) throws UnknownHostException {
-               if (DnsPrefetcher.getDnsPrefetcher().getInetAddressByHost(hostname) != null) {
-                    return DnsPrefetcher.getDnsPrefetcher().getInetAddressByHost(hostname);
-                }
-                return okhttp3.Dns.SYSTEM.lookup(hostname);
+            List<InetAddress> resolveResults = DnsPrefetcher.getDnsPrefetcher(logHandler).getInetAddressByHost(hostname);
+            if (resolveResults != null) {
+                logHandler.send("域名 " + hostname + " 从缓存中获取解析结果，结果是: " + resolveResults.toString());
+                return resolveResults;
+            }
+            resolveResults = okhttp3.Dns.SYSTEM.lookup(hostname);
+            logHandler.send("域名 " + hostname + " 从网络解析成功，结果是: " + resolveResults.toString());
+            return resolveResults;
             }
         });
 
@@ -79,6 +88,7 @@ public final class Client {
                 }
                 tag.ip = ip;
                 tag.duration = after - before;
+                logHandler.send("访问 " + request.method() + " " + request.url() + ": 时长: " + tag.duration + " ms, 远程服务器 IP: " + tag.ip);
                 return response;
             }
         });

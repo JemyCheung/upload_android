@@ -44,14 +44,14 @@ public final class UploadManager {
     public UploadManager(Configuration config) {
         this.config = config;
         this.client = new Client(config.proxy, config.connectTimeout, config.responseTimeout,
-                config.urlConverter, config.dns);
+                config.urlConverter, config.dns, config.logHandler);
     }
 
     public UploadManager(Configuration config, int multitread) {
         this.config = config;
         this.multithreads = multitread >= 1 ? multitread : DEF_THREAD_NUM;
         this.client = new Client(config.proxy, config.connectTimeout, config.responseTimeout,
-                config.urlConverter, config.dns);
+                config.urlConverter, config.dns, config.logHandler);
     }
 
     public UploadManager(Recorder recorder) {
@@ -182,7 +182,7 @@ public final class UploadManager {
      */
     public void put(String filePath, String key, String token, UpCompletionHandler completionHandler,
                     final UploadOptions options) {
-        put(new File(filePath), key, token, completionHandler, options,null);
+        put(new File(filePath), key, token, completionHandler, options);
     }
 
 
@@ -196,7 +196,7 @@ public final class UploadManager {
      * @param options  上传数据的可选参数
      */
     public void put(final File file, final String key, final String token, final UpCompletionHandler complete,
-                    final UploadOptions options, final LogHandler logHandler) {
+                    final UploadOptions options) {
         final UpToken decodedToken = UpToken.parse(token);
         if (areInvalidArg(key, null, file, token, decodedToken, complete)) {
             return;
@@ -213,12 +213,13 @@ public final class UploadManager {
             }
         }
         Zone z = config.zone;
+        final LogHandler logHandler = this.config.logHandler;
         z.preQuery(token, new Zone.QueryHandler() {
             @Override
             public void onSuccess() {
                 long size = file.length();
                 if (size <= config.putThreshold) {
-                    FormUploader.upload(client, config, file, key, decodedToken, complete, options,logHandler);
+                    FormUploader.upload(client, config, file, key, decodedToken, complete, options, logHandler);
                     return;
                 }
                 String recorderKey = config.keyGen.gen(key, file);
@@ -229,7 +230,7 @@ public final class UploadManager {
                     AsyncRun.runInMain(uploader);
                 } else {
                     ResumeUploaderFast uploader = new ResumeUploaderFast(client, config, file, key,
-                            decodedToken, completionHandler, options, recorderKey, multithreads,logHandler);
+                            decodedToken, completionHandler, options, recorderKey, multithreads, logHandler);
                     AsyncRun.runInMain(uploader);
                 }
             }

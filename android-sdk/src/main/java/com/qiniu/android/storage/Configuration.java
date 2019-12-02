@@ -1,10 +1,13 @@
 package com.qiniu.android.storage;
 
+import android.util.Log;
+
 import com.qiniu.android.common.AutoZone;
 import com.qiniu.android.common.Zone;
 import com.qiniu.android.http.Dns;
 import com.qiniu.android.http.ProxyConfiguration;
 import com.qiniu.android.http.UrlConverter;
+import com.qiniu.android.utils.LogHandler;
 
 import java.io.File;
 
@@ -70,6 +73,7 @@ public final class Configuration {
      */
     public long dnsCacheTimeMs;
 
+    public LogHandler logHandler;
 
     private Configuration(Builder builder) {
         useHttps = builder.useHttps;
@@ -88,11 +92,12 @@ public final class Configuration {
         proxy = builder.proxy;
 
         dnsCacheTimeMs = builder.dnsCacheTimeMs;
-
+        logHandler = builder.logHandler;
         urlConverter = builder.urlConverter;
+
         AutoZone autoZone = null;
 
-        autoZone = new AutoZone(builder.useHttps);
+        autoZone = new AutoZone(builder.useHttps, builder.logHandler);
 
         zone = builder.zone == null ? autoZone : builder.zone;
         dns = builder.dns;
@@ -115,6 +120,7 @@ public final class Configuration {
         private Recorder recorder = null;
         private KeyGenerator keyGen = null;
         private ProxyConfiguration proxy = null;
+        private LogHandler logHandler = null;
 
         private boolean useHttps = true;
         private int chunkSize = 2 * 1024 * 1024;
@@ -189,6 +195,11 @@ public final class Configuration {
 
         public Builder dnsCacheTimeMs(long dnsCacheTimeMs) {
             this.dnsCacheTimeMs = dnsCacheTimeMs;
+            return this;
+        }
+
+        public Builder logHandler(LogHandler logHandler) {
+            this.logHandler = logHandler;
             return this;
         }
 

@@ -4,6 +4,7 @@ import com.qiniu.android.http.Client;
 import com.qiniu.android.http.CompletionHandler;
 import com.qiniu.android.http.ResponseInfo;
 import com.qiniu.android.storage.UpToken;
+import com.qiniu.android.utils.LogHandler;
 import com.qiniu.android.utils.UrlSafeBase64;
 
 import org.json.JSONException;
@@ -22,22 +23,25 @@ public final class AutoZone extends Zone {
      * 自动判断机房
      */
     private String ucServer;
-    private Map<ZoneIndex, ZoneInfo> zones = new ConcurrentHashMap<>();
-    private Client client = new Client();
+    private final Map<ZoneIndex, ZoneInfo> zones = new ConcurrentHashMap<>();
+    private final Client client;
+    private final LogHandler logHandler;
 
     /**
      * default useHttps to req autoZone
      */
-    public AutoZone() {
-        this(true);
+    public AutoZone(final LogHandler logHandler) {
+        this(true, logHandler);
     }
 
-    public AutoZone(boolean useHttps) {
+    public AutoZone(boolean useHttps, final LogHandler logHandler) {
         if (useHttps) {
             this.ucServer = "https://uc.qbox.me";
         } else {
             this.ucServer = "http://uc.qbox.me";
         }
+        this.client = new Client(logHandler);
+        this.logHandler = logHandler;
     }
 
     //私有云可能改变ucServer
@@ -91,10 +95,12 @@ public final class AutoZone extends Zone {
         }
         ZoneInfo info = zones.get(index);
         if (info != null) {
+            this.logHandler.send("查询域名成功，" + index.bucket + " 的结果从缓存中获取");
             complete.onSuccess();
             return;
         }
 
+        final LogHandler logHandler = this.logHandler;
         getZoneJsonAsync(index, new CompletionHandler() {
             @Override
             public void complete(ResponseInfo info, JSONObject response) {
@@ -102,14 +108,17 @@ public final class AutoZone extends Zone {
                     try {
                         ZoneInfo info2 = ZoneInfo.buildFromJson(response);
                         zones.put(index, info2);
+                        logHandler.send("查询域名成功，" + index.bucket + " 的结果从网络获取，并已添加到缓存中");
                         complete.onSuccess();
                         return;
                     } catch (JSONException e) {
                         e.printStackTrace();
+                        logHandler.send("查询域名成功，" + index.bucket + " 的结果从网络获取，但解析响应体中的 JSON 时失败: " + e.getMessage());
                         complete.onFailure(ResponseInfo.NetworkError);
                         return;
                     }
                 }
+                logHandler.send("查询域名失败，" + index.bucket + " 的结果从网络获取失败，失败状态码: " + info.statusCode + " 错误内容: " + info.error);
                 complete.onFailure(info.statusCode);
             }
         });
@@ -121,16 +130,21 @@ public final class AutoZone extends Zone {
         if (index != null) {
             ZoneInfo info = zones.get(index);
             if (info != null) {
+                this.logHandler.send("查询域名成功，" + index.bucket + " 的结果从缓存中获取");
                 success = true;
             } else {
                 try {
                     ResponseInfo responseInfo = getZoneJsonSync(index);
-                    if (responseInfo.response == null)
+                    if (responseInfo.response == null) {
+                        logHandler.send("查询域名失败，" + index.bucket + " 的结果从网络获取失败，失败状态码: " + responseInfo.statusCode + " 错误内容: " + responseInfo.error);
                         return false;
+                    }
                     ZoneInfo info2 = ZoneInfo.buildFromJson(responseInfo.response);
                     zones.put(index, info2);
+                    this.logHandler.send("查询域名成功，" + index.bucket + " 的结果从网络获取，并已添加到缓存中");
                     success = true;
                 } catch (JSONException e) {
+                    logHandler.send("查询域名成功，" + index.bucket + " 的结果从网络获取，但解析响应体中的 JSON 时失败: " + e.getMessage());
                     e.printStackTrace();
                 }
             }
@@ -176,6 +190,7 @@ public final class AutoZone extends Zone {
                 }
             }
             if (zoneInfo != null) {
+                this.logHandler.send("冻结域名: " + frozenDomain);
                 zoneInfo.frozenDomain(frozenDomain);
             }
         }
