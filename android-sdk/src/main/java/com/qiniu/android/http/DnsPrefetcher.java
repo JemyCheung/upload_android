@@ -40,6 +40,7 @@ public class DnsPrefetcher {
     private static List<String> mHosts = new ArrayList<String>();
 
     private final LogHandler logHandler;
+    private static DnsCacheKey mDnsCacheKey = null;
 
     private DnsPrefetcher(final LogHandler logHandler) {
         this.logHandler = logHandler;
@@ -56,10 +57,31 @@ public class DnsPrefetcher {
         return dnsPrefetcher;
     }
 
+    /**
+     * 不用判断是否预取，每次调用UploadManager都直接预取一次。
+     * uploadManager只会new一次，但是uploadManager.put方法有多次，如果期间网络发生变化
+     * 这个方法预取的结果应该被ConcurrentHashMap自动覆盖
+     */
+    public void localFetch() {
+        List<String> localHosts = new ArrayList<String>();
+        //local
+        List<ZoneInfo> listZoneinfo = getLocalZone();
+        for (ZoneInfo zone : listZoneinfo) {
+            for (String host : zone.upDomainsList) {
+                localHosts.add(host);
+            }
+        }
+        localHosts.add(Config.preQueryHost);
+
+        if (localHosts != null && localHosts.size() > 0)
+            preFetch(localHosts);
+    }
+
     public DnsPrefetcher init(String token) throws UnknownHostException {
         this.token = token;
-        preHosts();
-        preFetch();
+        List<String> preHosts = preHosts();
+        if (preHosts != null && preHosts.size() > 0)
+            preFetch(preHosts);
         return this;
     }
 
@@ -90,9 +112,9 @@ public class DnsPrefetcher {
         return mConcurrentHashMap.get(host);
     }
 
-    private void preHosts() {
+    private List<String> preHosts() {
         HashSet<String> set = new HashSet<String>();
-
+        List<String> preHosts = new ArrayList<>();
         //preQuery sync
         ZoneInfo zoneInfo = getPreQueryZone();
         if (zoneInfo != null) {
@@ -111,24 +133,25 @@ public class DnsPrefetcher {
         }
         if (set.add(Config.preQueryHost))
             mHosts.add(Config.preQueryHost);
+        return preHosts;
     }
 
 
-    private void preFetch() {
+    private void preFetch(List<String> fetchHost) {
         List<String> rePreHosts = new ArrayList<String>();
-        for (String host : mHosts) {
+        for (String host : fetchHost) {
             List<InetAddress> inetAddresses = null;
             try {
                 inetAddresses = okhttp3.Dns.SYSTEM.lookup(host);
                 mConcurrentHashMap.put(host, inetAddresses);
-                this.logHandler.send("预解析域名 " + host + " 成功，缓存其结果");
+                mHosts.add(host);
             } catch (UnknownHostException e) {
                 e.printStackTrace();
                 rePreHosts.add(host);
-                this.logHandler.send("预解析域名 " + host + " 失败，错误内容: " + e.getMessage());
             }
         }
-        rePreFetch(rePreHosts, null);
+        if (rePreHosts.size() > 0)
+            rePreFetch(rePreHosts, null);
     }
 
     /**
@@ -274,6 +297,30 @@ public class DnsPrefetcher {
      * @return true:重新预期并缓存, false:不需要重新预取和缓存
      */
     public static boolean checkRePrefetchDns(String token, Configuration config) {
+        if (mDnsCacheKey == null)
+            return true;
+
+        String currentTime = String.valueOf(System.currentTimeMillis());
+        String localip = AndroidNetwork.getHostIP();
+        String akScope = StringUtils.getAkAndScope(token);
+
+        if (currentTime == null || localip == null || akScope == null)
+            return true;
+        long cacheTime = (Long.parseLong(currentTime) - Long.parseLong(mDnsCacheKey.getCurrentTime())) / 1000;
+        if (!mDnsCacheKey.getLocalIp().equals(localip) || cacheTime > config.dnsCacheTimeMs || !mDnsCacheKey.getAkScope().equals(akScope)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * uploadManager初始化时，加载本地缓存到内存
+     *
+     * @param config
+     * @return 如果不存在缓存返回true，需要重新预取；如果存在且满足使用，返回false
+     */
+    public static boolean recoverCache(Configuration config) {
         Recorder recorder = null;
         try {
             recorder = new DnsCacheFile(Config.dnscacheDir);
@@ -295,16 +342,15 @@ public class DnsPrefetcher {
 
         String currentTime = String.valueOf(System.currentTimeMillis());
         String localip = AndroidNetwork.getHostIP();
-        String akScope = StringUtils.getAkAndScope(token);
 
-        if (currentTime == null || localip == null || akScope == null)
+        if (currentTime == null || localip == null)
             return true;
         long cacheTime = (Long.parseLong(currentTime) - Long.parseLong(cacheKey.getCurrentTime())) / 1000;
-        if (!cacheKey.getLocalIp().equals(localip) || cacheTime > config.dnsCacheTimeMs || !cacheKey.getAkScope().equals(akScope)) {
+        if (!cacheKey.getLocalIp().equals(localip) || cacheTime > config.dnsCacheTimeMs) {
             return true;
         }
-
-        return recoverDnsCache(data, config);
+        mDnsCacheKey = cacheKey;
+        return recoverDnsCache(data,config);
     }
 
     /**

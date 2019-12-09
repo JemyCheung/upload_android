@@ -26,11 +26,11 @@ public final class UploadManager {
     private final Client client;
     private int multithreads = 1;
     private static int DEF_THREAD_NUM = 3;
+
     /**
      * 保证代码只执行一次，防止多个uploadManager同时开始预取dns
      */
-    static AtomicBoolean atomicStruct = new AtomicBoolean(false);
-
+    static AtomicBoolean atomicLocalPrefetch = new AtomicBoolean(false);
     /**
      * default 3 Threads
      */
@@ -45,6 +45,7 @@ public final class UploadManager {
         this.config = config;
         this.client = new Client(config.proxy, config.connectTimeout, config.responseTimeout,
                 config.urlConverter, config.dns, config.logHandler);
+        startLocalPrefetch(config);
     }
 
     public UploadManager(Configuration config, int multitread) {
@@ -52,6 +53,7 @@ public final class UploadManager {
         this.multithreads = multitread >= 1 ? multitread : DEF_THREAD_NUM;
         this.client = new Client(config.proxy, config.connectTimeout, config.responseTimeout,
                 config.urlConverter, config.dns, config.logHandler);
+        startLocalPrefetch(config);
     }
 
     public UploadManager(Recorder recorder) {
@@ -68,6 +70,20 @@ public final class UploadManager {
 
     public UploadManager(Recorder recorder, KeyGenerator keyGen, int multitread) {
         this(new Configuration.Builder().recorder(recorder, keyGen).build(), multitread);
+    }
+
+    //初始化一个UploadManager只允许执行一次，开启一个线程，对sdk内置host进行预取
+    private void startLocalPrefetch(final Configuration config) {
+        if (atomicLocalPrefetch.compareAndSet(false, true)) {
+            if (DnsPrefetcher.recoverCache(config)) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        DnsPrefetcher.getDnsPrefetcher(config.logHandler).localFetch();
+                    }
+                }).start();
+            }
+        }
     }
 
     private static boolean areInvalidArg(final String key, byte[] data, File f, String token,
@@ -143,15 +159,14 @@ public final class UploadManager {
             return;
         }
 
-        if (atomicStruct.compareAndSet(false, true)) {
-            if (DnsPrefetcher.checkRePrefetchDns(token, config)) {
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        DnsPrefetcher.startPrefetchDns(token, config);
-                    }
-                }).start();
-            }
+        //此处是对uc.qbox.me接口获取的域名进行预取
+        if (DnsPrefetcher.checkRePrefetchDns(token, config)) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    DnsPrefetcher.startPrefetchDns(token, config);
+                }
+            }).start();
         }
         Zone z = config.zone;
         z.preQuery(token, new Zone.QueryHandler() {
@@ -202,16 +217,16 @@ public final class UploadManager {
             return;
         }
 
-        if (atomicStruct.compareAndSet(false, true)) {
-            if (DnsPrefetcher.checkRePrefetchDns(token, config)) {
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        DnsPrefetcher.startPrefetchDns(token, config);
-                    }
-                }).start();
-            }
+        //此处是每次上传时判断，对uc.qbox.me接口获取的host+sdk内置的host进行预取(去重)
+        if (DnsPrefetcher.checkRePrefetchDns(token, config)) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    DnsPrefetcher.startPrefetchDns(token, config);
+                }
+            }).start();
         }
+
         Zone z = config.zone;
         final LogHandler logHandler = this.config.logHandler;
         z.preQuery(token, new Zone.QueryHandler() {

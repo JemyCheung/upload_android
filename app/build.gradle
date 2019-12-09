@@ -36,4 +36,5 @@ dependencies {
     //implementation files('libs/qiniu-android-sdk-7.5.0.jar')
     compile 'com.squareup.okhttp3:okhttp:3.11.0'
     implementation project(':android-sdk')
+
 }
