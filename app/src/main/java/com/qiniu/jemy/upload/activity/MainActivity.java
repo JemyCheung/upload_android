@@ -160,7 +160,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         final long startTime = System.currentTimeMillis();
         HashMap<String, String> map = new HashMap<>();
-        map.put("netCheckTime", "10");
+        map.put("netCheckTime", "120");
         UploadOptions opt = new UploadOptions(map, null, true, new UpProgressHandler() {
             @Override
             public void progress(String key, double percent) {
