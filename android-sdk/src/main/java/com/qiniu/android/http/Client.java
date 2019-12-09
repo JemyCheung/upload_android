@@ -89,7 +89,7 @@ public final class Client {
                 }
                 tag.ip = ip;
                 tag.duration = after - before;
-                logHandler.send("访问 " + request.method() + " " + request.url() + ": 时长: " + tag.duration + " ms, 远程服务器 IP: " + tag.ip);
+                logHandler.send("访问 " + request.method() + " " + request.url() + ": 时长: " + tag.duration + " ms, 远程服务器 IP: " + tag.ip + " 协议: " + response.protocol());
                 return response;
             }
         });
