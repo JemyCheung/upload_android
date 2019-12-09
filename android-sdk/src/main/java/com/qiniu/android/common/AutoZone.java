@@ -133,18 +133,19 @@ public final class AutoZone extends Zone {
                 this.logHandler.send("查询域名成功，" + index.bucket + " 的结果从缓存中获取");
                 success = true;
             } else {
+                ResponseInfo responseInfo = null;
                 try {
-                    ResponseInfo responseInfo = getZoneJsonSync(index);
+                    responseInfo = getZoneJsonSync(index);
                     if (responseInfo.response == null) {
-                        logHandler.send("查询域名失败，" + index.bucket + " 的结果从网络获取失败，失败状态码: " + responseInfo.statusCode + " 错误内容: " + responseInfo.error);
+                        logHandler.send("查询域名失败，" + index.bucket + " 的结果从网络获取失败，失败状态码: " + responseInfo.statusCode + "Host: " + responseInfo.host + " 错误内容: " + responseInfo.error);
                         return false;
                     }
                     ZoneInfo info2 = ZoneInfo.buildFromJson(responseInfo.response);
                     zones.put(index, info2);
-                    this.logHandler.send("查询域名成功，" + index.bucket + " 的结果从网络获取，并已添加到缓存中");
+                    this.logHandler.send("查询域名成功，" + index.bucket + " 的结果从网络 " + responseInfo.host + " 获取，并已添加到缓存中");
                     success = true;
                 } catch (JSONException e) {
-                    logHandler.send("查询域名成功，" + index.bucket + " 的结果从网络获取，但解析响应体中的 JSON 时失败: " + e.getMessage());
+                    logHandler.send("查询域名成功，" + index.bucket + " 的结果从网络 " + responseInfo.host + " 获取，但解析响应体中的 JSON 时失败: " + e.getMessage());
                     e.printStackTrace();
                 }
             }

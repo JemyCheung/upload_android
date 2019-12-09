@@ -84,10 +84,10 @@ public final class UploadOptions {
                 if (Thread.currentThread() == Looper.getMainLooper().getThread()) {
                     return;
                 }
+                if (logHandler != null) {
+                    logHandler.send("等待网络恢复");
+                }
                 for (int i = 0; i < finalNetReadyCheckTime; i++) {
-                    if (logHandler != null) {
-                        logHandler.send("等待网络恢复");
-                    }
                     try {
                         Thread.sleep(500);
                     } catch (InterruptedException e) {
@@ -95,13 +95,13 @@ public final class UploadOptions {
                     }
                     if (AndroidNetwork.isNetWorkReady()) {
                         if (logHandler != null) {
-                            logHandler.send("网络没有恢复");
+                            logHandler.send("网络已经恢复");
                         }
                         return;
                     }
-                    if (logHandler != null) {
-                        logHandler.send("网络已经恢复");
-                    }
+                }
+                if (logHandler != null) {
+                    logHandler.send("网络没有恢复");
                 }
             }
         };
