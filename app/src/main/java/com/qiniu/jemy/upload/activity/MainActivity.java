@@ -44,6 +44,7 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashMap;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -158,11 +159,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         final long startTime = System.currentTimeMillis();
-
-        UploadOptions opt = new UploadOptions(null, null, true, new UpProgressHandler() {
+        HashMap<String, String> map = new HashMap<>();
+        map.put("netCheckTime", "10");
+        UploadOptions opt = new UploadOptions(map, null, true, new UpProgressHandler() {
             @Override
             public void progress(String key, double percent) {
-            Log.i("qiniutest", "percent:" + percent);
+                Log.i("qiniutest", "percent:" + percent);
             }
         }, null, new LogHandler() {
             @Override

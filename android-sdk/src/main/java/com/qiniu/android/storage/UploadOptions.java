@@ -51,6 +51,16 @@ public final class UploadOptions {
 
     public UploadOptions(Map<String, String> params, String mimeType, boolean checkCrc,
                          UpProgressHandler progressHandler, UpCancellationSignal cancellationSignal, NetReadyHandler netReadyHandler, final LogHandler logHandler) {
+        int netReadyCheckTime = 6;
+        try {
+            String netCheckTime = params.get("netCheckTime");
+            if (netCheckTime != null) {
+                netReadyCheckTime = Integer.parseInt(netCheckTime);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        Log.e("qiniutest","netCheckTime:"+netReadyCheckTime);
         this.params = filterParam(params);
         this.mimeType = mime(mimeType);
         this.checkCrc = checkCrc;
@@ -66,13 +76,15 @@ public final class UploadOptions {
                 return false;
             }
         };
+        Log.e("qiniutest","netCheckTime:"+netReadyCheckTime);
+        final int finalNetReadyCheckTime = netReadyCheckTime;
         this.netReadyHandler = netReadyHandler != null ? netReadyHandler : new NetReadyHandler() {
             @Override
             public void waitReady() {
                 if (Thread.currentThread() == Looper.getMainLooper().getThread()) {
                     return;
                 }
-                for (int i = 0; i < 6; i++) {
+                for (int i = 0; i < finalNetReadyCheckTime; i++) {
                     if (logHandler != null) {
                         logHandler.send("等待网络恢复");
                     }
