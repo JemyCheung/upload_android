@@ -35,6 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class DnsPrefetcher {
     public static DnsPrefetcher dnsPrefetcher = null;
     private static String token;
+    private static Configuration config;
 
     private static ConcurrentHashMap<String, List<InetAddress>> mConcurrentHashMap = new ConcurrentHashMap<String, List<InetAddress>>();
     private static List<String> mHosts = new ArrayList<String>();
@@ -77,8 +78,9 @@ public class DnsPrefetcher {
             preFetch(localHosts);
     }
 
-    public DnsPrefetcher init(String token) throws UnknownHostException {
+    public DnsPrefetcher init(String token, Configuration config) throws UnknownHostException {
         this.token = token;
+        this.config = config;
         List<String> preHosts = preHosts();
         if (preHosts != null && preHosts.size() > 0)
             preFetch(preHosts);
@@ -247,7 +249,11 @@ public class DnsPrefetcher {
 
     ResponseInfo getZoneJsonSync(DnsPrefetcher.ZoneIndex index) {
         Client client = new Client(this.logHandler);
-        String address = "http://" + Config.preQueryHost + "/v2/query?ak=" + index.accessKey + "&bucket=" + index.bucket;
+        String schema = "https://";
+        if (!config.useHttps) {
+            schema = "http://";
+        }
+        String address = schema + Config.preQueryHost + "/v2/query?ak=" + index.accessKey + "&bucket=" + index.bucket;
         return client.syncGet(address, null);
     }
 
@@ -350,7 +356,7 @@ public class DnsPrefetcher {
             return true;
         }
         mDnsCacheKey = cacheKey;
-        return recoverDnsCache(data,config);
+        return recoverDnsCache(data, config);
     }
 
     /**
@@ -369,7 +375,7 @@ public class DnsPrefetcher {
         DnsPrefetcher dnsPrefetcher = null;
         try {
             recorder = new DnsCacheFile(Config.dnscacheDir);
-            dnsPrefetcher = DnsPrefetcher.getDnsPrefetcher(config.logHandler).init(token);
+            dnsPrefetcher = DnsPrefetcher.getDnsPrefetcher(config.logHandler).init(token, config);
         } catch (IOException e) {
             e.printStackTrace();
             return;
