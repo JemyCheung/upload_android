@@ -52,6 +52,7 @@ public class DnsPrefetcher {
             synchronized (DnsPrefetcher.class) {
                 if (dnsPrefetcher == null) {
                     dnsPrefetcher = new DnsPrefetcher(logHandler);
+                    logHandler.send("创建 DnsPrefetcher");
                 }
             }
         }
@@ -145,10 +146,12 @@ public class DnsPrefetcher {
             List<InetAddress> inetAddresses = null;
             try {
                 inetAddresses = okhttp3.Dns.SYSTEM.lookup(host);
+                this.logHandler.send("预解析域名 " + host + " 成功，缓存其结果");
                 mConcurrentHashMap.put(host, inetAddresses);
                 mHosts.add(host);
             } catch (UnknownHostException e) {
                 e.printStackTrace();
+                this.logHandler.send("预解析域名 " + host + " 失败，错误内容: " + e.getMessage());
                 rePreHosts.add(host);
             }
         }
@@ -356,6 +359,7 @@ public class DnsPrefetcher {
             return true;
         }
         mDnsCacheKey = cacheKey;
+        config.logHandler.send("准备从文件获取 DNS 缓存，cacheKey: " + cacheKey.toString());
         return recoverDnsCache(data, config);
     }
 
