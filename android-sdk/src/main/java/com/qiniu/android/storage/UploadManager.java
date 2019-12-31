@@ -1,5 +1,7 @@
 package com.qiniu.android.storage;
 
+import android.util.Log;
+
 import com.qiniu.android.collect.Config;
 import com.qiniu.android.collect.UploadInfoCollector;
 import com.qiniu.android.common.Zone;

@@ -161,7 +161,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         final long startTime = System.currentTimeMillis();
         HashMap<String, String> map = new HashMap<>();
         map.put("netCheckTime", "120");
-        UploadOptions opt = new UploadOptions(map, null, true, new UpProgressHandler() {
+        UploadOptions opt = new UploadOptions(null, null, true, new UpProgressHandler() {
             @Override
             public void progress(String key, double percent) {
                 Log.i("qiniutest", "percent:" + percent);
