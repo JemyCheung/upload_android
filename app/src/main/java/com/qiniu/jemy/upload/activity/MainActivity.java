@@ -21,6 +21,8 @@ import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.qiniu.android.common.FixedZone;
+import com.qiniu.android.common.Zone;
 import com.qiniu.android.http.custom.DnsCacheKey;
 import com.qiniu.android.storage.Recorder;
 import com.qiniu.android.storage.persistent.DnsCacheFile;
@@ -110,6 +112,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mLog = findViewById(com.qiniu.jemy.upload.R.id.log);
 
         mLog.setMovementMethod(ScrollingMovementMethod.getInstance());
+        mLog.setTextIsSelectable(true);
         mOpenFile.setOnClickListener(this);
         mStartBtn.setOnClickListener(this);
         mClearLog.setOnClickListener(this);
@@ -124,8 +127,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void initUploadManager() {
         if (this.uploadManager == null) {
+            Zone zone = FixedZone.zone0;//华东
             Configuration configuration = new Configuration.Builder()
                     .useHttps(true)
+                    .zone(zone)
                     .logHandler(new LogHandler() {
                         @Override
                         public void send(String msg) {
