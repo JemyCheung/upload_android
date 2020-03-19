@@ -23,6 +23,12 @@ import android.widget.Toast;
 
 import com.qiniu.android.common.FixedZone;
 import com.qiniu.android.common.Zone;
+import com.qiniu.android.dns.DnsManager;
+import com.qiniu.android.dns.Domain;
+import com.qiniu.android.dns.IResolver;
+import com.qiniu.android.dns.NetworkInfo;
+import com.qiniu.android.dns.local.Resolver;
+import com.qiniu.android.http.Dns;
 import com.qiniu.android.http.custom.DnsCacheKey;
 import com.qiniu.android.storage.Recorder;
 import com.qiniu.android.storage.persistent.DnsCacheFile;
@@ -45,8 +51,13 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -127,10 +138,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void initUploadManager() {
         if (this.uploadManager == null) {
-            Zone zone = FixedZone.zone0;//华东
+            Zone zone = FixedZone.zone0;//华东。使用sdk域名
+            Zone zone1 = new FixedZone(new String[]{"7y0uts.z0.qiniup.com"});//自定义上传域名
             Configuration configuration = new Configuration.Builder()
                     .useHttps(true)
-                    .zone(zone)
+                    .zone(zone1)
+                    .dns(buildDefaultDns())
                     .logHandler(new LogHandler() {
                         @Override
                         public void send(String msg) {
@@ -366,5 +379,59 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onPause() {
         super.onPause();
+    }
+
+    /**
+     * 需要自定义DNS解析时配置
+     *
+     * @return
+     */
+    public Dns buildDefaultDns() {
+        // 适当调整不同 IResolver 的加入顺序
+        ArrayList<IResolver> rs = new ArrayList<IResolver>(3);
+        try {
+            IResolver r1 = new Resolver(InetAddress.getByName("119.29.29.29"));
+            rs.add(r1);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+//        try {
+//            rs.add(new Resolver(InetAddress.getByName("114.114.114.114")));
+//        } catch (Exception ex) {
+//            ex.printStackTrace();
+//        }
+//        try {
+//            // 读取系统相关属性
+//            // android 27 及以上 会报错
+//            IResolver r2 = AndroidDnsServer.defaultResolver();
+//            rs.add(r2);
+//        } catch (Exception ex) {
+//            ex.printStackTrace();
+//        }
+        if (rs.size() == 0) {
+            return null;
+        }
+        final DnsManager happlyDns = new DnsManager(NetworkInfo.normal, rs.toArray(new IResolver[rs.size()]));
+        Dns dns = new Dns() {
+            // 若抛出异常 Exception ，则使用 okhttp 组件默认 dns 解析结果
+            @Override
+            public List<InetAddress> lookup(String hostname) throws UnknownHostException {
+                Log.e("qiniutest","buildDns-lookup:"+hostname);
+                InetAddress[] ips;
+                try {
+                    ips = happlyDns.queryInetAdress(new Domain(hostname));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    throw new UnknownHostException(e.getMessage());
+                }
+                if (ips == null || ips.length == 0) {
+                    throw new UnknownHostException(hostname + " resolve failed.");
+                }
+                List<InetAddress> l = new ArrayList<>();
+                Collections.addAll(l, ips);
+                return l;
+            }
+        };
+        return dns;
     }
 }

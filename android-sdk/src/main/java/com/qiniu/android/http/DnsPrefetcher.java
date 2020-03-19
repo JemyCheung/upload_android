@@ -132,6 +132,11 @@ public class DnsPrefetcher {
         }
         if (set.add(Config.preQueryHost))
             preHosts.add(Config.preQueryHost);
+
+        //test-qiniu
+        for (String phost:preHosts){
+            Log.e("qiniutest","prehost:"+phost);
+        }
         return preHosts;
     }
 

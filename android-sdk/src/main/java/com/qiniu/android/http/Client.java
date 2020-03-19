@@ -1,5 +1,7 @@
 package com.qiniu.android.http;
 
+import android.util.Log;
+
 import com.qiniu.android.common.Constants;
 import com.qiniu.android.storage.UpCancellationSignal;
 import com.qiniu.android.storage.UpToken;
@@ -60,6 +62,7 @@ public final class Client {
         builder.dns(new okhttp3.Dns() {
             @Override
             public List<InetAddress> lookup(String hostname) throws UnknownHostException {
+            Log.e("qiniutest","Client-lookup:"+hostname);
             List<InetAddress> resolveResults = DnsPrefetcher.getDnsPrefetcher(logHandler).getInetAddressByHost(hostname);
             if (resolveResults != null) {
                 logHandler.send("域名 " + hostname + " 从缓存中获取解析结果，结果是: " + resolveResults.toString());
